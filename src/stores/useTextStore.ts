@@ -3,7 +3,7 @@ import { ProcessedText, ProcessingState, Token, ProcessedWord } from '@/types/te
 import { LanguageCode } from '@/constants/languages'
 import { ProcessingMode } from '@/types/processing.types'
 import { LanguagePair } from '@/types/translation.types'
-import { parseTxtFile } from '@/services/fileParser'
+import { parseFile } from '@/services/fileParser'
 import { tokenize } from '@/services/language/tokenizer'
 import { getTranslationService } from '@/services/translation'
 
@@ -55,7 +55,7 @@ export const useTextStore = create<TextStore>((set, get) => ({
         },
       })
       
-      const content = await parseTxtFile(file)
+      const content = await parseFile(file)
       
       // Step 2: Tokenize
       set({

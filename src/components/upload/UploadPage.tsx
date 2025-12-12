@@ -5,7 +5,7 @@ import { ProcessingModeToggle } from './ProcessingModeToggle'
 import { TextPreview } from './TextPreview'
 import { LanguageCode } from '@/constants/languages'
 import { ProcessingMode } from '@/types/processing.types'
-import { parseTxtFile } from '@/services/fileParser'
+import { parseFile, SUPPORTED_EXTENSIONS } from '@/services/fileParser'
 import { detectLanguageFromSample } from '@/services/language/languageDetector'
 
 interface UploadPageProps {
@@ -29,17 +29,18 @@ export function UploadPage({ onProcess }: UploadPageProps) {
       return
     }
 
-    const parseFile = async () => {
+    const loadFile = async () => {
       setIsLoading(true)
       setError(null)
       try {
-        const content = await parseTxtFile(selectedFile)
+        const content = await parseFile(selectedFile)
         setFileContent(content)
         
         // Auto-detect source language from file content
         const detectedLanguage = detectLanguageFromSample(content)
         setSourceLanguage(detectedLanguage)
       } catch (err) {
+        console.error('File parse error:', err)
         setError('Failed to read file. Please try a different file.')
         setFileContent(null)
         setSourceLanguage(null)
@@ -48,7 +49,7 @@ export function UploadPage({ onProcess }: UploadPageProps) {
       }
     }
 
-    parseFile()
+    loadFile()
   }, [selectedFile])
 
   const handleFileSelect = (file: File) => {
@@ -78,7 +79,7 @@ export function UploadPage({ onProcess }: UploadPageProps) {
           <FileDropZone
             onFileSelect={handleFileSelect}
             selectedFile={selectedFile}
-            acceptedFormats={['.txt']}
+            acceptedFormats={SUPPORTED_EXTENSIONS}
           />
         </div>
 
