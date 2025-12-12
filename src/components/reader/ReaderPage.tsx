@@ -1,10 +1,13 @@
 import { useCallback, useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { ProcessedWord } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
 import { TranslationBubble } from './TranslationBubble'
 import { useTextStore } from '@/stores/useTextStore'
 import { useUIStore } from '@/stores/useUIStore'
+import { useVocabularyStore } from '@/stores/useVocabularyStore'
 import { getTranslationService } from '@/services/translation/translationService'
+import { LanguageCode } from '@/constants/languages'
 
 interface ReaderPageProps {
   onBack: () => void
@@ -107,31 +110,61 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [currentText])
   
+  // Get vocabulary store
+  const { saveWord } = useVocabularyStore()
+  
+  // Helper to save word to vocabulary
+  const saveToVocabulary = useCallback(async (
+    original: string,
+    translation: string,
+    partOfSpeech: string,
+    isPhrase: boolean = false
+  ) => {
+    if (!currentText) return false
+    
+    const saved = await saveWord({
+      original,
+      translation,
+      partOfSpeech,
+      sourceLanguage: currentText.sourceLanguage as LanguageCode,
+      targetLanguage: currentText.targetLanguage as LanguageCode,
+      textId: currentText.id,
+      textTitle: currentText.title,
+      isPhrase,
+    })
+    
+    if (saved) {
+      toast.success(`Saved "${original}"`, {
+        description: `→ ${translation}`,
+      })
+    } else {
+      toast.info(`"${original}" already saved`)
+    }
+    
+    return saved
+  }, [currentText, saveWord])
+  
   // Handle double-click - save to vocabulary
-  const handleWordDoubleClick = useCallback((word: ProcessedWord) => {
-    // TODO: Implement vocabulary saving in Milestone 4
-    console.log('Save to vocabulary:', word)
-    alert(`Saved "${word.original}" → "${word.translation}" to vocabulary!`)
-  }, [])
+  const handleWordDoubleClick = useCallback(async (word: ProcessedWord) => {
+    await saveToVocabulary(word.original, word.translation, word.partOfSpeech)
+  }, [saveToVocabulary])
   
   // Handle save from bubble
-  const handleSaveWord = useCallback(() => {
+  const handleSaveWord = useCallback(async () => {
     if (selectedWord) {
-      console.log('Save to vocabulary:', selectedWord)
-      alert(`Saved "${selectedWord.original}" → "${selectedWord.translation}" to vocabulary!`)
+      await saveToVocabulary(selectedWord.original, selectedWord.translation, selectedWord.partOfSpeech)
     }
     clearSelection()
-  }, [selectedWord, clearSelection])
+  }, [selectedWord, saveToVocabulary, clearSelection])
   
   // Handle save phrase
-  const handleSavePhrase = useCallback(() => {
+  const handleSavePhrase = useCallback(async () => {
     if (phraseTranslation) {
-      console.log('Save phrase to vocabulary:', phraseTranslation)
-      alert(`Saved "${phraseTranslation.text}" → "${phraseTranslation.translation}" to vocabulary!`)
+      await saveToVocabulary(phraseTranslation.text, phraseTranslation.translation, 'phrase', true)
     }
     setPhraseTranslation(null)
     clearPhraseSelection()
-  }, [phraseTranslation, clearPhraseSelection])
+  }, [phraseTranslation, saveToVocabulary, clearPhraseSelection])
   
   // Close phrase bubble
   const handleClosePhraseTranslation = useCallback(() => {
