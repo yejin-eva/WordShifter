@@ -23,43 +23,45 @@ export class OllamaProvider implements TranslationProvider {
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
     
-    // Build language-specific instructions
-    const scriptInstruction = this.getScriptInstruction(pair.target)
+    // Get a translation example for this language pair
+    const example = this.getExampleForPair(pair)
     
-    const prompt = `Translate this ${sourceLang} word to ${targetLang}.
+    const prompt = `You are a translator. Translate ONE word from ${sourceLang} to ${targetLang}.
 
-Word: ${word}
-Context: ${context}
+INPUT: ${word}
+CONTEXT: ${context}
 
-RULES:
-1. Write the translation in ${targetLang} script${scriptInstruction}
-2. NO quotation marks
-3. NO romanization or transliteration
-4. Format: translation|pos (pos = noun, verb, adj, adv, prep, pron, conj)
+OUTPUT FORMAT: translation|pos
 
-Examples for Russian target:
-- счастливый|adj
-- бежать|verb
-- вы|pron
+EXAMPLE:
+${example}
 
-Reply with ONLY: translation|pos`
+IMPORTANT: Your answer must be in ${targetLang}. Do not repeat the ${sourceLang} word.
+
+ANSWER:`
 
     const response = await this.callOllama(prompt)
     return this.parseResponse(word, response)
   }
   
   /**
-   * Get script-specific instructions for the target language
+   * Get a translation example for the given language pair
    */
-  private getScriptInstruction(target: string): string {
-    switch (target) {
-      case 'ru':
-        return ' (Cyrillic letters like А, Б, В, not Latin A, B, V)'
-      case 'ko':
-        return ' (Hangul like 한글, not romanization)'
-      default:
-        return ''
+  private getExampleForPair(pair: LanguagePair): string {
+    const examples: Record<string, string> = {
+      // From Russian
+      'ru-en': 'книга → book|noun',
+      'ru-ko': 'книга → 책|noun',
+      // From English  
+      'en-ru': 'book → книга|noun',
+      'en-ko': 'book → 책|noun',
+      // From Korean
+      'ko-en': '책 → book|noun',
+      'ko-ru': '책 → книга|noun',
     }
+    
+    const key = `${pair.source}-${pair.target}`
+    return examples[key] || 'hello → translation|noun'
   }
   
   async translatePhrase(
@@ -69,18 +71,18 @@ Reply with ONLY: translation|pos`
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
     
-    const scriptInstruction = this.getScriptInstruction(pair.target)
+    const example = this.getPhraseExampleForPair(pair)
     
-    const prompt = `Translate this ${sourceLang} phrase to ${targetLang}.
+    const prompt = `You are a translator. Translate this phrase from ${sourceLang} to ${targetLang}.
 
-Phrase: ${phrase}
+INPUT: ${phrase}
 
-RULES:
-1. Write in ${targetLang} script${scriptInstruction}
-2. NO quotation marks
-3. NO romanization
+EXAMPLE:
+${example}
 
-Reply with ONLY the translation.`
+IMPORTANT: Your answer must be in ${targetLang}. Do not repeat the ${sourceLang} phrase.
+
+ANSWER:`
 
     const response = await this.callOllama(prompt)
     
@@ -89,6 +91,23 @@ Reply with ONLY the translation.`
       translation: this.cleanTranslation(response),
       partOfSpeech: 'phrase',
     }
+  }
+  
+  /**
+   * Get a phrase translation example for the given language pair
+   */
+  private getPhraseExampleForPair(pair: LanguagePair): string {
+    const examples: Record<string, string> = {
+      'ru-en': 'доброе утро → good morning',
+      'ru-ko': 'доброе утро → 좋은 아침',
+      'en-ru': 'good morning → доброе утро',
+      'en-ko': 'good morning → 좋은 아침',
+      'ko-en': '좋은 아침 → good morning',
+      'ko-ru': '좋은 아침 → доброе утро',
+    }
+    
+    const key = `${pair.source}-${pair.target}`
+    return examples[key] || 'hello world → translated phrase'
   }
   
   async isAvailable(): Promise<boolean> {
