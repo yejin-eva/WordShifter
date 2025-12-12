@@ -58,11 +58,11 @@ export interface TranslationConfig {
 
 /**
  * Default configuration
- * Using Mistral (7B) for better multilingual translation quality
+ * Using Qwen2.5 (7B) for best multilingual translation quality
  */
 export const DEFAULT_TRANSLATION_CONFIG: TranslationConfig = {
   provider: 'ollama',
   ollamaEndpoint: 'http://localhost:11434',
-  ollamaModel: 'mistral',  // Better than llama3.2 for translation
+  ollamaModel: 'qwen2.5:7b',  // Best for multilingual (ru/ko/en)
 }
 

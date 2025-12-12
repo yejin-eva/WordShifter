@@ -26,19 +26,11 @@ export class OllamaProvider implements TranslationProvider {
     // Get a translation example for this language pair
     const example = this.getExampleForPair(pair)
     
-    const prompt = `Translate this ${sourceLang} word directly to ${targetLang}.
+    const prompt = `${sourceLang}→${targetLang}: ${word}
 
-Word: ${word}
-Context: ${context}
-
-Format: translation|pos
-
-Example:
 ${example}
 
-CRITICAL: Output ONLY in ${targetLang}. Do NOT output in ${sourceLang}.
-
-Answer:`
+ONE word answer. No explanation. Format: word|pos`
 
     const response = await this.callOllama(prompt)
     return this.parseResponse(word, response)
@@ -73,16 +65,11 @@ Answer:`
     
     const example = this.getPhraseExampleForPair(pair)
     
-    const prompt = `Translate this ${sourceLang} phrase directly to ${targetLang}.
+    const prompt = `${sourceLang}→${targetLang}: "${phrase}"
 
-Phrase: ${phrase}
-
-Example:
 ${example}
 
-CRITICAL: Output ONLY in ${targetLang}. Do NOT output in ${sourceLang}.
-
-Answer:`
+Translation only. No explanation.`
 
     const response = await this.callOllama(prompt)
     
