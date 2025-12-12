@@ -85,10 +85,10 @@ export function TranslationBubble({
           e.stopPropagation()
           onSave()
         }}
-        className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-all ml-1"
+        className="text-blue-500 hover:text-blue-600 hover:scale-110 transition-all ml-1"
         title="Save to vocabulary"
       >
-        ⭐
+        💾
       </button>
       
       {/* Arrow pointing to word */}

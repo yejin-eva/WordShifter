@@ -148,7 +148,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
         <div className="text-center py-12">
           <p className="text-gray-500 mb-2">No vocabulary saved yet</p>
           <p className="text-sm text-gray-400">
-            Double-click words or click ⭐ while reading to save them
+            Double-click words or click 💾 while reading to save them
           </p>
         </div>
       ) : (
