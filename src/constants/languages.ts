@@ -13,9 +13,14 @@ export const SUPPORTED_LANGUAGES: Language[] = [
 ]
 
 export const LANGUAGE_PAIRS: { source: LanguageCode; target: LanguageCode }[] = [
+  // From Russian
   { source: 'ru', target: 'en' },
   { source: 'ru', target: 'ko' },
+  // From English
   { source: 'en', target: 'ru' },
+  { source: 'en', target: 'ko' },
+  // From Korean
+  { source: 'ko', target: 'en' },
   { source: 'ko', target: 'ru' },
 ]
 
