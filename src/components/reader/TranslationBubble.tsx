@@ -83,6 +83,22 @@ export function TranslationBubble({
         </span>
       )}
       
+      {/* Save button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onSave()
+        }}
+        disabled={isRetrying}
+        className={cn(
+          'text-blue-500 hover:text-blue-600 hover:scale-110 transition-all',
+          isRetrying && 'opacity-50 cursor-not-allowed'
+        )}
+        title="Save to vocabulary"
+      >
+        💾
+      </button>
+      
       {/* Retry button */}
       {onRetry && (
         <button
@@ -100,22 +116,6 @@ export function TranslationBubble({
           🔄
         </button>
       )}
-      
-      {/* Save button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onSave()
-        }}
-        disabled={isRetrying}
-        className={cn(
-          'text-blue-500 hover:text-blue-600 hover:scale-110 transition-all',
-          isRetrying && 'opacity-50 cursor-not-allowed'
-        )}
-        title="Save to vocabulary"
-      >
-        💾
-      </button>
       
       {/* Arrow pointing to word */}
       <div 
