@@ -58,11 +58,11 @@ export interface TranslationConfig {
 
 /**
  * Default configuration
- * Changed to 'ollama' for real translation testing
+ * Using Mistral (7B) for better multilingual translation quality
  */
 export const DEFAULT_TRANSLATION_CONFIG: TranslationConfig = {
-  provider: 'ollama',  // Use Ollama for real translations
+  provider: 'ollama',
   ollamaEndpoint: 'http://localhost:11434',
-  ollamaModel: 'llama3.2',
+  ollamaModel: 'mistral',  // Better than llama3.2 for translation
 }
 
