@@ -68,32 +68,56 @@ export const useTextStore = create<TextStore>((set, get) => ({
       
       const tokens: Token[] = tokenize(content)
       
-      // Step 3: Translate
-      set({
-        processing: {
-          status: 'translating',
-          progress: 15,
-          currentStep: 'Translating words...',
-        },
-      })
+      let processedWords: ProcessedWord[]
       
-      const translationService = getTranslationService()
-      
-      const processedWords = await translationService.processTokens(
-        tokens,
-        pair,
-        (progress) => {
-          // Map translation progress (0-100) to overall progress (15-95)
-          const overallProgress = 15 + Math.round(progress * 0.8)
-          set({
-            processing: {
-              status: 'translating',
-              progress: overallProgress,
-              currentStep: `Translating... ${progress}%`,
-            },
-          })
-        }
-      )
+      if (mode === 'full') {
+        // Full mode: Pre-translate all words
+        set({
+          processing: {
+            status: 'translating',
+            progress: 15,
+            currentStep: 'Translating words...',
+          },
+        })
+        
+        const translationService = getTranslationService()
+        
+        processedWords = await translationService.processTokens(
+          tokens,
+          pair,
+          (progress) => {
+            // Map translation progress (0-100) to overall progress (15-95)
+            const overallProgress = 15 + Math.round(progress * 0.8)
+            set({
+              processing: {
+                status: 'translating',
+                progress: overallProgress,
+                currentStep: `Translating... ${progress}%`,
+              },
+            })
+          }
+        )
+      } else {
+        // Dynamic mode: Create placeholder words, translate on-click
+        set({
+          processing: {
+            status: 'translating',
+            progress: 50,
+            currentStep: 'Preparing text...',
+          },
+        })
+        
+        // Create words with placeholder translations
+        processedWords = tokens
+          .filter(t => t.type === 'word')
+          .map(token => ({
+            id: crypto.randomUUID(),
+            original: token.value,
+            translation: '', // Empty = not translated yet
+            partOfSpeech: '',
+            index: token.index,
+          }))
+      }
       
       // Step 4: Create processed text
       const processedText: ProcessedText = {

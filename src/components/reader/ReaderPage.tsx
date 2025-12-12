@@ -42,8 +42,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Get the selected word for the bubble
   const selectedWord = selectedWordId ? getWordById(selectedWordId) : undefined
   
-  // Handle word click - show translation bubble
-  const handleWordClick = useCallback((word: ProcessedWord, element: HTMLSpanElement) => {
+  // State for dynamic translation loading
+  const [isTranslatingWord, setIsTranslatingWord] = useState(false)
+  
+  // Handle word click - show translation bubble (with dynamic translation if needed)
+  const handleWordClick = useCallback(async (word: ProcessedWord, element: HTMLSpanElement) => {
     // Clear phrase translation when clicking a single word
     setPhraseTranslation(null)
     
@@ -59,8 +62,31 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       y: placement === 'above' ? rect.top : rect.bottom,
     }
     
+    // Select the word first (shows bubble immediately)
     selectWord(word.id, position, placement)
-  }, [selectWord])
+    
+    // If word has no translation yet (dynamic mode), translate now
+    if (!word.translation && currentText) {
+      setIsTranslatingWord(true)
+      try {
+        const result = await translationService.translateWord(
+          word.original,
+          currentText.originalContent.substring(0, 200), // Context
+          { 
+            source: currentText.sourceLanguage as LanguageCode, 
+            target: currentText.targetLanguage as LanguageCode 
+          }
+        )
+        // Update word with translation
+        updateWord(word.id, result.translation, result.partOfSpeech)
+      } catch (error) {
+        console.error('Dynamic translation failed:', error)
+        updateWord(word.id, '(translation failed)', 'unknown')
+      } finally {
+        setIsTranslatingWord(false)
+      }
+    }
+  }, [selectWord, currentText, translationService, updateWord])
   
   // Handle phrase click - translate the phrase
   const handlePhraseClick = useCallback(async (words: ProcessedWord[], element: HTMLSpanElement) => {
@@ -250,7 +276,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       {/* Single word translation bubble */}
       {selectedWord && bubblePosition && !phraseTranslation && (
         <TranslationBubble
-          translation={selectedWord.translation}
+          translation={selectedWord.translation || (isTranslatingWord ? 'Loading...' : 'Click to translate')}
           partOfSpeech={selectedWord.partOfSpeech}
           position={bubblePosition}
           placement={bubblePlacement}
