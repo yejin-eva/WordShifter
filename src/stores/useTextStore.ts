@@ -6,6 +6,7 @@ import { LanguagePair } from '@/types/translation.types'
 import { parseFile } from '@/services/fileParser'
 import { tokenize } from '@/services/language/tokenizer'
 import { getTranslationService } from '@/services/translation'
+import { textStorage } from '@/services/storage/textStorage'
 
 interface TextStore {
   // Current text being read
@@ -36,6 +37,9 @@ interface TextStore {
   
   // Background translation for dynamic mode
   translateRemainingWords: (tokens: Token[], pair: LanguagePair) => Promise<void>
+  
+  // Load a saved text
+  loadSavedText: (id: string) => Promise<boolean>
 }
 
 const initialProcessingState: ProcessingState = {
@@ -182,6 +186,11 @@ export const useTextStore = create<TextStore>((set, get) => ({
         },
       })
       
+      // Save to IndexedDB for later
+      textStorage.save(processedText).catch(err => {
+        console.error('Failed to save text to storage:', err)
+      })
+      
     } catch (error) {
       set({
         processing: {
@@ -283,6 +292,57 @@ export const useTextStore = create<TextStore>((set, get) => ({
     }
     
     set({ backgroundProgress: 100 })
+  },
+  
+  loadSavedText: async (id) => {
+    set({
+      processing: {
+        status: 'parsing',
+        progress: 50,
+        currentStep: 'Loading saved text...',
+      },
+    })
+    
+    try {
+      const savedText = await textStorage.getById(id)
+      
+      if (!savedText) {
+        set({
+          processing: {
+            status: 'error',
+            progress: 0,
+            currentStep: 'Text not found',
+            error: 'Could not find saved text',
+          },
+        })
+        return false
+      }
+      
+      // Update last opened time
+      await textStorage.updateLastOpened(id)
+      
+      set({
+        currentText: savedText,
+        backgroundProgress: 100,
+        processing: {
+          status: 'complete',
+          progress: 100,
+          currentStep: 'Loaded!',
+        },
+      })
+      
+      return true
+    } catch (error) {
+      set({
+        processing: {
+          status: 'error',
+          progress: 0,
+          currentStep: 'Failed to load',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      })
+      return false
+    }
   },
 }))
 

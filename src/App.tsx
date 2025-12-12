@@ -4,15 +4,16 @@ import { Layout } from './components/layout/Layout'
 import { UploadPage } from './components/upload/UploadPage'
 import { ReaderPage } from './components/reader/ReaderPage'
 import { VocabularyPage } from './components/vocabulary/VocabularyPage'
+import { SavedTextsPage } from './components/texts/SavedTextsPage'
 import { useTextStore } from './stores/useTextStore'
 import { LanguageCode } from './constants/languages'
 import { ProcessingMode } from './types/processing.types'
 
-type Page = 'home' | 'vocabulary' | 'reader'
+type Page = 'home' | 'vocabulary' | 'reader' | 'saved'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
-  const { currentText, processing, processFile, clearCurrentText } = useTextStore()
+  const { currentText, processing, processFile, clearCurrentText, loadSavedText } = useTextStore()
 
   const handleProcess = async (
     file: File, 
@@ -28,11 +29,18 @@ function App() {
     setCurrentPage('home')
   }
 
-  const handleNavigate = (page: 'home' | 'vocabulary') => {
+  const handleNavigate = (page: 'home' | 'vocabulary' | 'saved') => {
     if (page === 'home') {
       clearCurrentText()
     }
     setCurrentPage(page)
+  }
+
+  const handleOpenSavedText = async (textId: string) => {
+    const success = await loadSavedText(textId)
+    if (success) {
+      setCurrentPage('reader')
+    }
   }
 
   // Show vocabulary page
@@ -41,6 +49,21 @@ function App() {
       <>
         <Layout onNavigate={handleNavigate} currentPage="vocabulary">
           <VocabularyPage onBack={() => setCurrentPage('home')} />
+        </Layout>
+        <Toaster position="bottom-center" richColors />
+      </>
+    )
+  }
+
+  // Show saved texts page
+  if (currentPage === 'saved') {
+    return (
+      <>
+        <Layout onNavigate={handleNavigate} currentPage="saved">
+          <SavedTextsPage 
+            onBack={() => setCurrentPage('home')} 
+            onOpenText={handleOpenSavedText}
+          />
         </Layout>
         <Toaster position="bottom-center" richColors />
       </>

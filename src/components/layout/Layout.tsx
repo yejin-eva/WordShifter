@@ -2,8 +2,8 @@ import { ReactNode } from 'react'
 
 interface LayoutProps {
   children: ReactNode
-  onNavigate?: (page: 'home' | 'vocabulary') => void
-  currentPage?: 'home' | 'vocabulary' | 'reader'
+  onNavigate?: (page: 'home' | 'vocabulary' | 'saved') => void
+  currentPage?: 'home' | 'vocabulary' | 'reader' | 'saved'
 }
 
 export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutProps) {
@@ -21,6 +21,16 @@ export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutPro
           
           {/* Navigation */}
           <nav className="flex gap-4">
+            <button
+              onClick={() => onNavigate?.('saved')}
+              className={`text-sm transition-colors ${
+                currentPage === 'saved' 
+                  ? 'text-blue-600 font-medium' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              📖 Saved Texts
+            </button>
             <button
               onClick={() => onNavigate?.('vocabulary')}
               className={`text-sm transition-colors ${
