@@ -36,7 +36,7 @@ Format: translation|pos
 Example:
 ${example}
 
-CRITICAL: Output ONLY in ${targetLang}. NOT English. NOT ${sourceLang}.
+CRITICAL: Output ONLY in ${targetLang}. Do NOT output in ${sourceLang}.
 
 Answer:`
 
@@ -80,7 +80,7 @@ Phrase: ${phrase}
 Example:
 ${example}
 
-CRITICAL: Output ONLY in ${targetLang}. NOT English. NOT ${sourceLang}.
+CRITICAL: Output ONLY in ${targetLang}. Do NOT output in ${sourceLang}.
 
 Answer:`
 
