@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { UploadPage } from './UploadPage'
 
 describe('UploadPage', () => {
@@ -44,30 +44,37 @@ describe('UploadPage', () => {
     expect(screen.getByText(/upload a file to continue/i)).toBeInTheDocument()
   })
 
-  it('auto-detects source language when file is dropped', () => {
+  it('auto-detects source language when file is dropped', async () => {
     render(<UploadPage onProcess={() => {}} />)
     
-    // Drop a file
+    // Drop a file with English content
     const dropZone = screen.getByText(/drop file here/i).closest('div')!
-    const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' })
+    const mockFile = new File(['test content in English'], 'test.txt', { type: 'text/plain' })
     
     fireEvent.drop(dropZone, {
       dataTransfer: { files: [mockFile] }
     })
     
-    // Should show auto-detected badge
-    expect(screen.getByText(/auto-detected/i)).toBeInTheDocument()
+    // Wait for async file parsing and language detection
+    await waitFor(() => {
+      expect(screen.getByText(/auto-detected/i)).toBeInTheDocument()
+    })
   })
 
-  it('calls onProcess with all parameters when button clicked', () => {
+  it('calls onProcess with all parameters when button clicked', async () => {
     const mockOnProcess = vi.fn()
     render(<UploadPage onProcess={mockOnProcess} />)
     
-    // Drop a file
+    // Drop a file with Russian content
     const dropZone = screen.getByText(/drop file here/i).closest('div')!
-    const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' })
+    const mockFile = new File(['Привет мир тест'], 'test.txt', { type: 'text/plain' })
     fireEvent.drop(dropZone, {
       dataTransfer: { files: [mockFile] }
+    })
+    
+    // Wait for async file parsing and language detection
+    await waitFor(() => {
+      expect(screen.getByText(/auto-detected/i)).toBeInTheDocument()
     })
     
     // Select target language
@@ -80,7 +87,7 @@ describe('UploadPage', () => {
     
     expect(mockOnProcess).toHaveBeenCalledWith(
       mockFile,
-      'ru',  // auto-detected source
+      'ru',  // auto-detected source (Cyrillic)
       'en',  // selected target
       'dynamic'  // default processing mode
     )

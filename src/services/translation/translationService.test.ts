@@ -3,17 +3,23 @@ import { TranslationService } from './translationService'
 import { tokenize } from '@/services/language/tokenizer'
 
 describe('TranslationService', () => {
-  it('uses mock provider by default', () => {
+  it('uses ollama provider by default', () => {
     const service = new TranslationService()
+    
+    expect(service.getProvider().name).toBe('Ollama (Local)')
+  })
+
+  it('can use mock provider when specified', () => {
+    const service = new TranslationService({ provider: 'mock' })
     
     expect(service.getProvider().name).toBe('Mock (Development)')
   })
 
-  it('can switch to ollama provider', () => {
+  it('can switch to mock provider', () => {
     const service = new TranslationService()
-    service.setProvider('ollama')
+    service.setProvider('mock')
     
-    expect(service.getProvider().name).toBe('Ollama (Local)')
+    expect(service.getProvider().name).toBe('Mock (Development)')
   })
 
   it('translates a single word', async () => {

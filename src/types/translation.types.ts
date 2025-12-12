@@ -58,9 +58,10 @@ export interface TranslationConfig {
 
 /**
  * Default configuration
+ * Changed to 'ollama' for real translation testing
  */
 export const DEFAULT_TRANSLATION_CONFIG: TranslationConfig = {
-  provider: 'mock',
+  provider: 'ollama',  // Use Ollama for real translations
   ollamaEndpoint: 'http://localhost:11434',
   ollamaModel: 'llama3.2',
 }

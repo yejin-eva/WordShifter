@@ -6,6 +6,7 @@ import { TextPreview } from './TextPreview'
 import { LanguageCode } from '@/constants/languages'
 import { ProcessingMode } from '@/types/processing.types'
 import { parseTxtFile } from '@/services/fileParser'
+import { detectLanguageFromSample } from '@/services/language/languageDetector'
 
 interface UploadPageProps {
   onProcess: (file: File, sourceLanguage: LanguageCode, targetLanguage: LanguageCode, mode: ProcessingMode) => void
@@ -20,10 +21,11 @@ export function UploadPage({ onProcess }: UploadPageProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Parse file content when file is selected
+  // Parse file content and auto-detect language when file is selected
   useEffect(() => {
     if (!selectedFile) {
       setFileContent(null)
+      setSourceLanguage(null)
       return
     }
 
@@ -33,9 +35,14 @@ export function UploadPage({ onProcess }: UploadPageProps) {
       try {
         const content = await parseTxtFile(selectedFile)
         setFileContent(content)
+        
+        // Auto-detect source language from file content
+        const detectedLanguage = detectLanguageFromSample(content)
+        setSourceLanguage(detectedLanguage)
       } catch (err) {
         setError('Failed to read file. Please try a different file.')
         setFileContent(null)
+        setSourceLanguage(null)
       } finally {
         setIsLoading(false)
       }
@@ -44,12 +51,8 @@ export function UploadPage({ onProcess }: UploadPageProps) {
     parseFile()
   }, [selectedFile])
 
-  // Auto-detect source language when file is selected
-  // For now, we'll simulate auto-detection as Russian (will be implemented properly later)
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)
-    // Simulate auto-detection (will be replaced with actual detection)
-    setSourceLanguage('ru')
   }
 
   const canProcess = selectedFile && sourceLanguage && targetLanguage
