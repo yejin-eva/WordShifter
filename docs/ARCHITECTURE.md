@@ -545,7 +545,28 @@ interface TranslationProvider {
   isAvailable(): Promise<boolean>;
 }
 
-// Ollama Provider
+// Mock Provider (for development - use this first!)
+class MockProvider implements TranslationProvider {
+  name = 'Mock (Development)';
+  
+  async translate(prompt: string): Promise<string> {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Extract word from prompt and return mock translation
+    const wordMatch = prompt.match(/Word: "(.+?)"/);
+    const word = wordMatch ? wordMatch[1] : 'unknown';
+    
+    // Return mock format: translation|partOfSpeech
+    return `[${word}]|noun`;  // Always returns [word]|noun for testing
+  }
+  
+  async isAvailable(): Promise<boolean> {
+    return true;  // Always available
+  }
+}
+
+// Ollama Provider (for real local testing)
 class OllamaProvider implements TranslationProvider {
   name = 'Ollama (Local)';
   
@@ -562,7 +583,7 @@ class OllamaProvider implements TranslationProvider {
   }
 }
 
-// OpenAI Provider
+// OpenAI Provider (user provides API key)
 class OpenAIProvider implements TranslationProvider {
   name = 'OpenAI (Cloud)';
   
@@ -581,6 +602,11 @@ class OpenAIProvider implements TranslationProvider {
     return response.json().then(r => r.choices[0].message.content);
   }
 }
+
+// Provider selection priority:
+// 1. Development: Use MockProvider (fast, no setup required)
+// 2. Local testing: Use OllamaProvider (real translations, offline)
+// 3. Production: Use OpenAIProvider (highest quality, user's API key)
 ```
 
 ---
@@ -910,6 +936,105 @@ async function translateWithOpenAI(
   return parseTranslationResponse(rawResponse);
 }
 ```
+
+---
+
+## Design Guidelines
+
+### Visual Style: Minimal & Clean
+
+The UI should prioritize simplicity and low memory usage.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  DESIGN PRINCIPLES                                          │
+├─────────────────────────────────────────────────────────────┤
+│  ✓ Lots of white space                                      │
+│  ✓ Simple, flat design (no gradients, shadows minimal)      │
+│  ✓ Limited color palette (2-3 colors max)                   │
+│  ✓ System fonts preferred (no custom font loading)          │
+│  ✓ No unnecessary animations                                │
+│  ✓ Optimize for low memory usage                            │
+│  ✗ No decorative elements                                   │
+│  ✗ No heavy images or icons                                 │
+│  ✗ No complex CSS effects                                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Color Palette
+
+```css
+/* Minimal color scheme */
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --muted: #f5f5f5;
+  --border: #e5e5e5;
+  --primary: #2563eb;      /* Blue - for interactive elements */
+  --primary-hover: #1d4ed8;
+  --accent: #fef08a;       /* Light yellow - for word highlights */
+  --success: #22c55e;      /* Green - for saved confirmation */
+}
+
+.dark {
+  --background: #1a1a1a;
+  --foreground: #fafafa;
+  --muted: #262626;
+  --border: #404040;
+  --primary: #3b82f6;
+  --accent: #854d0e;
+  --success: #16a34a;
+}
+```
+
+### Typography
+
+```css
+/* Use system fonts - no loading overhead */
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+             'Helvetica Neue', Arial, sans-serif;
+
+/* Reader text - slightly larger for comfortable reading */
+.reader-text {
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 65ch;  /* Optimal reading width */
+}
+```
+
+### Component Styling Examples
+
+```tsx
+// Button - simple, clean
+<button className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover">
+  Process
+</button>
+
+// Card - minimal shadow
+<div className="p-4 bg-white border border-border rounded">
+  Content
+</div>
+
+// Translation bubble - simple and functional
+<div className="px-3 py-2 bg-white border border-border rounded shadow-sm">
+  happy (adj) ⭐
+</div>
+
+// Word highlight - subtle
+<span className="px-0.5 rounded hover:bg-accent cursor-pointer">
+  слово
+</span>
+```
+
+### Memory Optimization
+
+| Technique | Implementation |
+|-----------|----------------|
+| **Virtualization** | Use `react-window` for long texts (only render visible words) |
+| **Lazy loading** | Load PDF.js and EPUB.js only when needed |
+| **Image-free** | Use Unicode symbols (⭐) instead of icon libraries |
+| **Minimal dependencies** | Avoid heavy UI libraries |
+| **Efficient state** | Use Zustand selectors to prevent unnecessary re-renders |
 
 ---
 

@@ -521,6 +521,55 @@ export function useSaveWord() {
 
 ---
 
+## Git Workflow
+
+**Commit after EACH step** in the milestone tables. This provides granular history.
+
+### Commit Format
+
+```
+feat(scope): brief description
+
+- Detail 1
+- Detail 2
+```
+
+### Commit Scopes
+
+| Scope | Use For |
+|-------|---------|
+| `setup` | Project initialization, config |
+| `upload` | File upload feature |
+| `reader` | Reader/display feature |
+| `translation` | Translation service |
+| `vocabulary` | Vocabulary feature |
+| `settings` | Settings page |
+| `ui` | General UI components |
+| `test` | Test files |
+| `docs` | Documentation updates |
+
+### Example Commits
+
+```bash
+# After Step 1.1
+git add .
+git commit -m "feat(setup): initialize Vite + React + TypeScript project"
+
+# After Step 1.5
+git add .
+git commit -m "feat(upload): create FileDropZone component
+
+- Supports drag-and-drop
+- Accepts .txt files
+- Shows file name after drop"
+
+# After adding tests
+git add .
+git commit -m "test(upload): add FileDropZone component tests"
+```
+
+---
+
 ## Quick Reference Card
 
 ```
@@ -539,11 +588,17 @@ export function useSaveWord() {
    Types         → PascalCase
    Files         → Match export name
 
-✅ Before committing:
+🎨 Design:
+   Style         → Minimal, clean, lots of white space
+   Memory        → Optimize for low memory usage
+   Components    → Simple, not over-engineered
+
+✅ Before committing (after EACH step):
    - Code compiles (tsc --noEmit)
    - Tests pass (npm test)
    - Lint passes (npm run lint)
    - Docs updated (if applicable)
+   - git add . && git commit -m "..."
 
 ❓ When in doubt:
    - Check existing code for patterns

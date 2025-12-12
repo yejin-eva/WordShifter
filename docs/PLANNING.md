@@ -619,6 +619,10 @@ For each unique word in text:
 | A5 | What if Ollama isn't running? | **Show instructions** - guide user to start Ollama with clear steps |
 | A6 | Default Ollama model? | **llama3.2** - good balance of quality and speed |
 | A7 | Dark mode preference? | **Follow system** - respect OS dark/light preference |
+| A8 | Translation API for development? | **Mock service first** - use mock translations during dev, Ollama for real testing, user provides OpenAI key later |
+| A9 | Design aesthetic? | **Minimal & clean** - lots of white space, simple UI, optimize for low memory usage |
+| A10 | Testing strategy? | **Write tests as we go** - each feature should have tests before moving on |
+| A11 | Git workflow? | **Commit after each step** - granular history, commit after completing each step in milestones |
 
 ---
 
@@ -626,6 +630,7 @@ For each unique word in text:
 
 | Date | Author | Changes |
 |------|--------|---------|
+| 2024-12-12 | Agent | Added development decisions: mock service, minimal design, tests, git workflow (A8-A11) |
 | 2024-12-12 | Agent | Added detailed step-by-step Implementation Guide for each milestone |
 | 2024-12-12 | Agent | Added processing mode toggle (Full/Dynamic) to F1: File Upload |
 | 2024-12-12 | Agent | Answered key questions: single API call format, page navigation, Ollama instructions |
