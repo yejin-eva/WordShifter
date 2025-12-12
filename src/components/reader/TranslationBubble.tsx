@@ -7,7 +7,9 @@ interface TranslationBubbleProps {
   position: { x: number; y: number }
   placement: 'above' | 'below'
   onSave: () => void
+  onRetry?: () => void
   onClose: () => void
+  isRetrying?: boolean
 }
 
 export function TranslationBubble({
@@ -16,7 +18,9 @@ export function TranslationBubble({
   position,
   placement,
   onSave,
+  onRetry,
   onClose,
+  isRetrying = false,
 }: TranslationBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
   
@@ -68,15 +72,33 @@ export function TranslationBubble({
       style={style}
     >
       {/* Translation text */}
-      <span className="font-medium text-gray-900">
-        {translation}
+      <span className={cn('font-medium text-gray-900', isRetrying && 'opacity-50')}>
+        {isRetrying ? 'Retrying...' : translation}
       </span>
       
       {/* Part of speech */}
-      {partOfSpeech && partOfSpeech !== 'unknown' && (
+      {partOfSpeech && partOfSpeech !== 'unknown' && !isRetrying && (
         <span className="text-gray-500 text-sm">
           ({partOfSpeech})
         </span>
+      )}
+      
+      {/* Retry button */}
+      {onRetry && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onRetry()
+          }}
+          disabled={isRetrying}
+          className={cn(
+            'hover:scale-110 transition-all',
+            isRetrying ? 'opacity-50 cursor-not-allowed animate-spin' : 'hover:text-orange-600'
+          )}
+          title="Retry translation"
+        >
+          🔄
+        </button>
       )}
       
       {/* Save button */}
@@ -85,7 +107,11 @@ export function TranslationBubble({
           e.stopPropagation()
           onSave()
         }}
-        className="text-blue-500 hover:text-blue-600 hover:scale-110 transition-all ml-1"
+        disabled={isRetrying}
+        className={cn(
+          'text-blue-500 hover:text-blue-600 hover:scale-110 transition-all',
+          isRetrying && 'opacity-50 cursor-not-allowed'
+        )}
         title="Save to vocabulary"
       >
         💾

@@ -27,6 +27,9 @@ interface TextStore {
   
   // Get a word by its ID
   getWordById: (wordId: string) => ProcessedWord | undefined
+  
+  // Update a word's translation
+  updateWord: (wordId: string, translation: string, partOfSpeech: string) => void
 }
 
 const initialProcessingState: ProcessingState = {
@@ -139,6 +142,24 @@ export const useTextStore = create<TextStore>((set, get) => ({
     const { currentText } = get()
     if (!currentText) return undefined
     return currentText.words.find(w => w.id === wordId)
+  },
+  
+  updateWord: (wordId, translation, partOfSpeech) => {
+    const { currentText } = get()
+    if (!currentText) return
+    
+    const updatedWords = currentText.words.map(word =>
+      word.id === wordId
+        ? { ...word, translation, partOfSpeech }
+        : word
+    )
+    
+    set({
+      currentText: {
+        ...currentText,
+        words: updatedWords,
+      },
+    })
   },
 }))
 

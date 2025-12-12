@@ -14,7 +14,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getWordById } = useTextStore()
+  const { currentText, getWordById, updateWord } = useTextStore()
   const { 
     selectedWordId, 
     bubblePosition, 
@@ -26,6 +26,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Get translation service instance
   const translationService = useMemo(() => getTranslationService(), [])
+  
+  // Retry state
+  const [isRetrying, setIsRetrying] = useState(false)
   
   // Phrase translation state
   const [phraseTranslation, setPhraseTranslation] = useState<{
@@ -172,6 +175,36 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     clearPhraseSelection()
   }, [clearPhraseSelection])
   
+  // Handle retry translation for selected word
+  const handleRetryTranslation = useCallback(async () => {
+    if (!selectedWord || !currentText) return
+    
+    setIsRetrying(true)
+    
+    try {
+      const result = await translationService.translateWord(
+        selectedWord.original,
+        currentText.originalContent.substring(
+          Math.max(0, selectedWord.index * 10 - 50),
+          Math.min(currentText.originalContent.length, selectedWord.index * 10 + 50)
+        ),
+        { 
+          source: currentText.sourceLanguage as LanguageCode, 
+          target: currentText.targetLanguage as LanguageCode 
+        }
+      )
+      
+      // Update the word in the store
+      updateWord(selectedWord.id, result.translation, result.partOfSpeech)
+      toast.success('Translation updated!')
+    } catch (error) {
+      console.error('Retry translation failed:', error)
+      toast.error('Retry failed')
+    } finally {
+      setIsRetrying(false)
+    }
+  }, [selectedWord, currentText, translationService, updateWord])
+  
   if (!currentText) {
     return (
       <div className="text-center py-12">
@@ -222,7 +255,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           position={bubblePosition}
           placement={bubblePlacement}
           onSave={handleSaveWord}
+          onRetry={handleRetryTranslation}
           onClose={clearSelection}
+          isRetrying={isRetrying}
         />
       )}
       
