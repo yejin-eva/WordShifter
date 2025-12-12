@@ -25,12 +25,13 @@ export class OllamaProvider implements TranslationProvider {
     
     const example = this.getExampleForPair(pair)
     
-    const prompt = `Translate "${word}" from ${sourceLang} to ${targetLang}.
-Format: translation|pos (noun/verb/adj/adv/prep/pron/conj)
+    const prompt = `${sourceLang} to ${targetLang} dictionary.
+Output ONLY: translation|pos
+No quotes. No original word. Just translation|pos.
 
 ${example}
 
-"${word}" =`
+${word} →`
 
     const response = await this.callOllama(prompt)
     return this.parseResponse(word, response)
@@ -43,30 +44,30 @@ ${example}
     // Use varied examples including prepositions to avoid model copying one answer
     const examples: Record<string, string> = {
       // From Russian
-      'ru-en': `"быстрый" = fast|adj
-"на" = on|prep
-"бежать" = run|verb`,
-      'ru-ko': `"быстрый" = 빠른|adj
-"на" = 위에|prep
-"бежать" = 달리다|verb`,
+      'ru-en': `быстрый → fast|adj
+на → on|prep
+бежать → run|verb`,
+      'ru-ko': `быстрый → 빠른|adj
+на → 위에|prep
+бежать → 달리다|verb`,
       // From English  
-      'en-ru': `"fast" = быстрый|adj
-"on" = на|prep
-"run" = бежать|verb`,
-      'en-ko': `"fast" = 빠른|adj
-"on" = 위에|prep
-"run" = 달리다|verb`,
+      'en-ru': `fast → быстрый|adj
+on → на|prep
+run → бежать|verb`,
+      'en-ko': `fast → 빠른|adj
+on → 위에|prep
+run → 달리다|verb`,
       // From Korean
-      'ko-en': `"빠른" = fast|adj
-"위에" = on|prep
-"달리다" = run|verb`,
-      'ko-ru': `"빠른" = быстрый|adj
-"위에" = на|prep
-"달리다" = бежать|verb`,
+      'ko-en': `빠른 → fast|adj
+위에 → on|prep
+달리다 → run|verb`,
+      'ko-ru': `빠른 → быстрый|adj
+위에 → на|prep
+달리다 → бежать|verb`,
     }
     
     const key = `${pair.source}-${pair.target}`
-    return examples[key] || '"hello" = translation|noun'
+    return examples[key] || 'hello → translation|noun'
   }
   
   async translatePhrase(
@@ -161,23 +162,59 @@ Then click "Retry" to check the connection.`
   }
   
   private parseResponse(original: string, response: string): TranslationResult {
-    const cleaned = response.trim()
-    const parts = cleaned.split('|')
+    // Clean up the response aggressively
+    let cleaned = response.trim()
     
-    if (parts.length === 2) {
+    // Remove the original word if the model echoed it back (e.g., "Все"|all|adj)
+    // Look for patterns like: originalWord"|translation or originalWord →
+    const echoPatterns = [
+      new RegExp(`^["']?${this.escapeRegex(original)}["']?\\s*["'|→=:]\\s*`, 'i'),
+      /^["'][^"']+["']\s*["'|→=:]\s*/,  // Any quoted word at start
+    ]
+    for (const pattern of echoPatterns) {
+      cleaned = cleaned.replace(pattern, '')
+    }
+    
+    // Split by pipe and take first two meaningful parts
+    const parts = cleaned.split('|').map(p => p.trim()).filter(p => p.length > 0)
+    
+    if (parts.length >= 2) {
+      // Take first part as translation, second as POS
+      // Clean POS: take only first word (e.g., "adj/noun" → "adj")
+      const pos = parts[1].split(/[\/,\s]/)[0].toLowerCase()
       return {
         original,
         translation: this.cleanTranslation(parts[0]),
-        partOfSpeech: parts[1].trim().toLowerCase(),
+        partOfSpeech: this.normalizePOS(pos),
       }
     }
     
-    // Fallback if format is not as expected
+    // Fallback: just use the cleaned text
     return {
       original,
       translation: this.cleanTranslation(cleaned),
       partOfSpeech: 'unknown',
     }
+  }
+  
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+  
+  private normalizePOS(pos: string): string {
+    // Normalize common POS variations
+    const posMap: Record<string, string> = {
+      'noun': 'noun', 'n': 'noun',
+      'verb': 'verb', 'v': 'verb',
+      'adj': 'adj', 'adjective': 'adj',
+      'adv': 'adv', 'adverb': 'adv',
+      'prep': 'prep', 'preposition': 'prep',
+      'pron': 'pron', 'pronoun': 'pron',
+      'conj': 'conj', 'conjunction': 'conj',
+      'det': 'det', 'determiner': 'det',
+      'part': 'part', 'particle': 'part',
+    }
+    return posMap[pos] || pos
   }
   
   /**
