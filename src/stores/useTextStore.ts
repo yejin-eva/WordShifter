@@ -14,6 +14,9 @@ interface TextStore {
   // Processing state
   processing: ProcessingState
   
+  // Background translation progress
+  backgroundProgress: number // 0-100, for dynamic mode
+  
   // Actions
   processFile: (
     file: File,
@@ -30,6 +33,9 @@ interface TextStore {
   
   // Update a word's translation
   updateWord: (wordId: string, translation: string, partOfSpeech: string) => void
+  
+  // Background translation for dynamic mode
+  translateRemainingWords: (tokens: Token[], pair: LanguagePair) => Promise<void>
 }
 
 const initialProcessingState: ProcessingState = {
@@ -41,6 +47,7 @@ const initialProcessingState: ProcessingState = {
 export const useTextStore = create<TextStore>((set, get) => ({
   currentText: null,
   processing: initialProcessingState,
+  backgroundProgress: 100, // 100 = complete (or not started)
   
   processFile: async (file, sourceLanguage, targetLanguage, mode) => {
     const pair: LanguagePair = { source: sourceLanguage, target: targetLanguage }
@@ -98,25 +105,58 @@ export const useTextStore = create<TextStore>((set, get) => ({
           }
         )
       } else {
-        // Dynamic mode: Create placeholder words, translate on-click
+        // Dynamic mode: Translate first batch, continue in background
+        const INITIAL_BATCH_SIZE = 50 // Translate first 50 words immediately
+        
         set({
           processing: {
             status: 'translating',
-            progress: 50,
-            currentStep: 'Preparing text...',
+            progress: 15,
+            currentStep: 'Translating first page...',
           },
         })
         
-        // Create words with placeholder translations
-        processedWords = tokens
-          .filter(t => t.type === 'word')
-          .map(token => ({
-            id: crypto.randomUUID(),
-            original: token.value,
-            translation: '', // Empty = not translated yet
-            partOfSpeech: '',
-            index: token.index,
-          }))
+        const translationService = getTranslationService()
+        const wordTokens = tokens.filter(t => t.type === 'word')
+        
+        // Split into initial batch and rest
+        const initialTokens = wordTokens.slice(0, INITIAL_BATCH_SIZE)
+        const remainingTokens = wordTokens.slice(INITIAL_BATCH_SIZE)
+        
+        // Translate initial batch synchronously
+        const initialWords = await translationService.processTokens(
+          initialTokens.map(t => ({ ...t, type: 'word' as const })),
+          pair,
+          (progress) => {
+            set({
+              processing: {
+                status: 'translating',
+                progress: 15 + Math.round(progress * 0.3),
+                currentStep: `Preparing first page... ${progress}%`,
+              },
+            })
+          }
+        )
+        
+        // Create placeholder words for the rest
+        const placeholderWords: ProcessedWord[] = remainingTokens.map(token => ({
+          id: crypto.randomUUID(),
+          original: token.value,
+          normalized: token.value.toLowerCase(),
+          translation: '', // Empty = will be translated in background
+          partOfSpeech: '',
+          index: token.index,
+        }))
+        
+        processedWords = [...initialWords, ...placeholderWords]
+        
+        // Start background translation after returning
+        if (remainingTokens.length > 0) {
+          // We'll trigger background translation after setting currentText
+          setTimeout(() => {
+            get().translateRemainingWords(remainingTokens, pair)
+          }, 100)
+        }
       }
       
       // Step 4: Create processed text
@@ -184,6 +224,56 @@ export const useTextStore = create<TextStore>((set, get) => ({
         words: updatedWords,
       },
     })
+  },
+  
+  translateRemainingWords: async (tokens, pair) => {
+    const BATCH_SIZE = 20 // Translate 20 words at a time in background
+    const translationService = getTranslationService()
+    const { currentText } = get()
+    
+    if (!currentText) return
+    
+    set({ backgroundProgress: 0 })
+    
+    // Process in batches
+    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+      const batch = tokens.slice(i, i + BATCH_SIZE)
+      
+      try {
+        const translatedBatch = await translationService.processTokens(
+          batch.map(t => ({ ...t, type: 'word' as const })),
+          pair,
+          () => {} // No progress callback for background
+        )
+        
+        // Update each word in the store
+        const { currentText: latestText } = get()
+        if (!latestText) return // User navigated away
+        
+        const updatedWords = [...latestText.words]
+        for (const translated of translatedBatch) {
+          const wordIndex = updatedWords.findIndex(w => w.index === translated.index)
+          if (wordIndex !== -1) {
+            updatedWords[wordIndex] = translated
+          }
+        }
+        
+        const progress = Math.round(((i + batch.length) / tokens.length) * 100)
+        set({
+          currentText: { ...latestText, words: updatedWords },
+          backgroundProgress: progress,
+        })
+        
+      } catch (error) {
+        console.error('Background translation batch failed:', error)
+        // Continue with next batch
+      }
+      
+      // Small delay to avoid overwhelming the translation service
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    
+    set({ backgroundProgress: 100 })
   },
 }))
 

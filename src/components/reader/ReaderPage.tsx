@@ -14,7 +14,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getWordById, updateWord } = useTextStore()
+  const { currentText, getWordById, updateWord, backgroundProgress } = useTextStore()
   const { 
     selectedWordId, 
     bubblePosition, 
@@ -175,13 +175,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Handle double-click - save to vocabulary
   const handleWordDoubleClick = useCallback(async (word: ProcessedWord) => {
-    await saveToVocabulary(word.original, word.translation, word.partOfSpeech)
+    await saveToVocabulary(word.original, word.translation, word.partOfSpeech || 'unknown')
   }, [saveToVocabulary])
   
   // Handle save from bubble
   const handleSaveWord = useCallback(async () => {
     if (selectedWord) {
-      await saveToVocabulary(selectedWord.original, selectedWord.translation, selectedWord.partOfSpeech)
+      await saveToVocabulary(selectedWord.original, selectedWord.translation, selectedWord.partOfSpeech || 'unknown')
     }
     clearSelection()
   }, [selectedWord, saveToVocabulary, clearSelection])
@@ -256,9 +256,23 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           ← Back
         </button>
         
-        <h2 className="text-lg font-medium text-gray-900">
-          {currentText.title}
-        </h2>
+        <div className="text-center">
+          <h2 className="text-lg font-medium text-gray-900">
+            {currentText.title}
+          </h2>
+          {/* Background translation progress */}
+          {backgroundProgress < 100 && (
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-24 h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${backgroundProgress}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-400">Preparing...</span>
+            </div>
+          )}
+        </div>
         
         <div className="text-sm text-gray-500">
           {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}
