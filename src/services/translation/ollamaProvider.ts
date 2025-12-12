@@ -23,22 +23,43 @@ export class OllamaProvider implements TranslationProvider {
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
     
-    const prompt = `Translate the following word from ${sourceLang} to ${targetLang}.
-Context: "${context}"
-Word to translate: "${word}"
+    // Build language-specific instructions
+    const scriptInstruction = this.getScriptInstruction(pair.target)
+    
+    const prompt = `Translate this ${sourceLang} word to ${targetLang}.
 
-Respond in this exact format: translation|partOfSpeech
-Where partOfSpeech is one of: noun, verb, adj, adv, prep, conj, pron, interj
+Word: ${word}
+Context: ${context}
 
-Examples:
-- "happy|adj"
-- "to run|verb"
-- "quickly|adv"
+RULES:
+1. Write the translation in ${targetLang} script${scriptInstruction}
+2. NO quotation marks
+3. NO romanization or transliteration
+4. Format: translation|pos (pos = noun, verb, adj, adv, prep, pron, conj)
 
-Respond with ONLY the translation|partOfSpeech, nothing else.`
+Examples for Russian target:
+- счастливый|adj
+- бежать|verb
+- вы|pron
+
+Reply with ONLY: translation|pos`
 
     const response = await this.callOllama(prompt)
     return this.parseResponse(word, response)
+  }
+  
+  /**
+   * Get script-specific instructions for the target language
+   */
+  private getScriptInstruction(target: string): string {
+    switch (target) {
+      case 'ru':
+        return ' (Cyrillic letters like А, Б, В, not Latin A, B, V)'
+      case 'ko':
+        return ' (Hangul like 한글, not romanization)'
+      default:
+        return ''
+    }
   }
   
   async translatePhrase(
@@ -48,16 +69,24 @@ Respond with ONLY the translation|partOfSpeech, nothing else.`
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
     
-    const prompt = `Translate the following phrase from ${sourceLang} to ${targetLang}.
-Phrase to translate: "${phrase}"
+    const scriptInstruction = this.getScriptInstruction(pair.target)
+    
+    const prompt = `Translate this ${sourceLang} phrase to ${targetLang}.
 
-Respond with ONLY the translation, nothing else.`
+Phrase: ${phrase}
+
+RULES:
+1. Write in ${targetLang} script${scriptInstruction}
+2. NO quotation marks
+3. NO romanization
+
+Reply with ONLY the translation.`
 
     const response = await this.callOllama(prompt)
     
     return {
       original: phrase,
-      translation: response.trim(),
+      translation: this.cleanTranslation(response),
       partOfSpeech: 'phrase',
     }
   }
@@ -123,7 +152,7 @@ Then click "Retry" to check the connection.`
     if (parts.length === 2) {
       return {
         original,
-        translation: parts[0].trim(),
+        translation: this.cleanTranslation(parts[0]),
         partOfSpeech: parts[1].trim().toLowerCase(),
       }
     }
@@ -131,9 +160,20 @@ Then click "Retry" to check the connection.`
     // Fallback if format is not as expected
     return {
       original,
-      translation: cleaned,
+      translation: this.cleanTranslation(cleaned),
       partOfSpeech: 'unknown',
     }
+  }
+  
+  /**
+   * Clean translation by removing quotation marks and extra whitespace
+   */
+  private cleanTranslation(text: string): string {
+    return text
+      .trim()
+      .replace(/^["'"'"«»]+/, '')  // Remove leading quotes
+      .replace(/["'"'"«»]+$/, '')  // Remove trailing quotes
+      .trim()
   }
 }
 

@@ -19,12 +19,24 @@ export function TranslationBubble({
 }: TranslationBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
   
-  // Close on click outside
+  // Close on click outside (but not when clicking another word)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
-        onClose()
+      const target = event.target as HTMLElement
+      
+      // If clicking inside the bubble, don't close
+      if (bubbleRef.current && bubbleRef.current.contains(target)) {
+        return
       }
+      
+      // If clicking on another word, let the word handler deal with it
+      // The word click will automatically select the new word
+      if (target.closest('.word-clickable')) {
+        return
+      }
+      
+      // Otherwise, close the bubble
+      onClose()
     }
     
     // Add listener on next tick to avoid immediate close
