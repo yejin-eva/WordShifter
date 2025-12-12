@@ -1,52 +1,62 @@
 import * as pdfjsLib from 'pdfjs-dist'
 
-// Set up the worker - use CDN for simplicity
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+// Set up the worker using the bundled worker from node_modules
+// @ts-expect-error - worker import
+import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+pdfjsLib.GlobalWorkerOptions.workerSrc = PdfWorker
 
 /**
  * Parse a PDF file and extract plain text content
  */
 export async function parsePdfFile(file: File): Promise<string> {
-  // Read file as ArrayBuffer
-  const arrayBuffer = await file.arrayBuffer()
-  
-  // Load the PDF document
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-  
-  const textParts: string[] = []
-  
-  // Extract text from each page
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum)
-    const textContent = await page.getTextContent()
+  try {
+    // Read file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer()
     
-    // Extract text items and join them
-    const pageText = textContent.items
-      .map(item => {
-        // Type guard for TextItem
-        if ('str' in item) {
-          return item.str
-        }
-        return ''
-      })
-      .join(' ')
+    // Load the PDF document
+    const pdf = await pdfjsLib.getDocument({ 
+      data: arrayBuffer,
+      useSystemFonts: true,
+    }).promise
     
-    if (pageText.trim()) {
-      textParts.push(pageText)
+    const textParts: string[] = []
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum)
+      const textContent = await page.getTextContent()
+      
+      // Extract text items and join them
+      const pageText = textContent.items
+        .map(item => {
+          // Type guard for TextItem
+          if ('str' in item) {
+            return item.str
+          }
+          return ''
+        })
+        .join(' ')
+      
+      if (pageText.trim()) {
+        textParts.push(pageText)
+      }
     }
+    
+    if (textParts.length === 0) {
+      throw new Error('Could not extract text from PDF file. The PDF may be image-based.')
+    }
+    
+    // Join pages with double newlines
+    let text = textParts.join('\n\n')
+    
+    // Clean up common PDF artifacts
+    text = cleanPdfText(text)
+    
+    return text
+  } catch (error) {
+    console.error('PDF parsing error:', error)
+    throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
-  
-  if (textParts.length === 0) {
-    throw new Error('Could not extract text from PDF file. The PDF may be image-based.')
-  }
-  
-  // Join pages with double newlines
-  let text = textParts.join('\n\n')
-  
-  // Clean up common PDF artifacts
-  text = cleanPdfText(text)
-  
-  return text
 }
 
 /**
