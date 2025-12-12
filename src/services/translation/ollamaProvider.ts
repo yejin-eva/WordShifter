@@ -23,14 +23,14 @@ export class OllamaProvider implements TranslationProvider {
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
     
-    // Get a translation example for this language pair
     const example = this.getExampleForPair(pair)
     
-    const prompt = `${sourceLang}→${targetLang}: ${word}
+    const prompt = `Translate "${word}" from ${sourceLang} to ${targetLang}.
+Format: translation|pos (noun/verb/adj/adv/prep/pron/conj)
 
 ${example}
 
-ONE word answer. No explanation. Format: word|pos`
+"${word}" =`
 
     const response = await this.callOllama(prompt)
     return this.parseResponse(word, response)
@@ -40,20 +40,33 @@ ONE word answer. No explanation. Format: word|pos`
    * Get a translation example for the given language pair
    */
   private getExampleForPair(pair: LanguagePair): string {
+    // Use varied examples including prepositions to avoid model copying one answer
     const examples: Record<string, string> = {
       // From Russian
-      'ru-en': 'книга → book|noun',
-      'ru-ko': 'книга → 책|noun',
+      'ru-en': `"быстрый" = fast|adj
+"на" = on|prep
+"бежать" = run|verb`,
+      'ru-ko': `"быстрый" = 빠른|adj
+"на" = 위에|prep
+"бежать" = 달리다|verb`,
       // From English  
-      'en-ru': 'book → книга|noun',
-      'en-ko': 'book → 책|noun',
+      'en-ru': `"fast" = быстрый|adj
+"on" = на|prep
+"run" = бежать|verb`,
+      'en-ko': `"fast" = 빠른|adj
+"on" = 위에|prep
+"run" = 달리다|verb`,
       // From Korean
-      'ko-en': '책 → book|noun',
-      'ko-ru': '책 → книга|noun',
+      'ko-en': `"빠른" = fast|adj
+"위에" = on|prep
+"달리다" = run|verb`,
+      'ko-ru': `"빠른" = быстрый|adj
+"위에" = на|prep
+"달리다" = бежать|verb`,
     }
     
     const key = `${pair.source}-${pair.target}`
-    return examples[key] || 'hello → translation|noun'
+    return examples[key] || '"hello" = translation|noun'
   }
   
   async translatePhrase(
@@ -63,13 +76,9 @@ ONE word answer. No explanation. Format: word|pos`
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
     
-    const example = this.getPhraseExampleForPair(pair)
-    
-    const prompt = `${sourceLang}→${targetLang}: "${phrase}"
+    const prompt = `Translate to ${targetLang}. Reply with translation only.
 
-${example}
-
-Translation only. No explanation.`
+"${phrase}" =`
 
     const response = await this.callOllama(prompt)
     
