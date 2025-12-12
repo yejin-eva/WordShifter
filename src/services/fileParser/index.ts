@@ -1,6 +1,7 @@
 export { parseTxtFile, detectFileFormat, isSupported } from './txtParser'
 export type { FileFormat } from './txtParser'
 export { parseEpubFile, getEpubMetadata } from './epubParser'
+export { parsePdfFile, getPdfMetadata } from './pdfParser'
 
 /**
  * Parse any supported file format
@@ -17,6 +18,10 @@ export async function parseFile(file: File): Promise<string> {
       const { parseEpubFile } = await import('./epubParser')
       return parseEpubFile(file)
     
+    case 'pdf':
+      const { parsePdfFile } = await import('./pdfParser')
+      return parsePdfFile(file)
+    
     default:
       throw new Error(`Unsupported file format: .${extension}`)
   }
@@ -27,11 +32,11 @@ export async function parseFile(file: File): Promise<string> {
  */
 export function isSupportedFile(file: File): boolean {
   const extension = file.name.split('.').pop()?.toLowerCase()
-  return ['txt', 'epub'].includes(extension || '')
+  return ['txt', 'epub', 'pdf'].includes(extension || '')
 }
 
 /**
  * Get list of supported file extensions
  */
-export const SUPPORTED_EXTENSIONS = ['.txt', '.epub']
+export const SUPPORTED_EXTENSIONS = ['.txt', '.epub', '.pdf']
 
