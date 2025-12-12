@@ -86,7 +86,7 @@ export function UploadPage({ onProcess }: UploadPageProps) {
             value={sourceLanguage}
             onChange={setSourceLanguage}
             autoDetected={selectedFile !== null && sourceLanguage !== null}
-            disabled={true}  // Auto-detected, not user-selectable
+            // Allow manual override - user can change auto-detected language if needed
           />
 
           <LanguageSelector
