@@ -1,7 +1,7 @@
 export { parseTxtFile, detectFileFormat, isSupported } from './txtParser'
 export type { FileFormat } from './txtParser'
 export { parseEpubFile, getEpubMetadata } from './epubParser'
-export { parsePdfFile, getPdfMetadata } from './pdfParser'
+// PDF parser is loaded dynamically to avoid issues in test environment
 
 /**
  * Parse any supported file format
