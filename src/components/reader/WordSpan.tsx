@@ -8,6 +8,8 @@ interface WordSpanProps {
   isInPhraseSelection: boolean
   onClick: (word: ProcessedWord, element: HTMLSpanElement) => void
   onDoubleClick: (word: ProcessedWord) => void
+  onMouseDown: (wordIndex: number) => void
+  onMouseEnter: (wordIndex: number) => void
 }
 
 export function WordSpan({
@@ -16,6 +18,8 @@ export function WordSpan({
   isInPhraseSelection,
   onClick,
   onDoubleClick,
+  onMouseDown,
+  onMouseEnter,
 }: WordSpanProps) {
   const spanRef = useRef<HTMLSpanElement>(null)
   
@@ -29,16 +33,27 @@ export function WordSpan({
     onDoubleClick(word)
   }, [word, onDoubleClick])
   
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault() // Prevent text selection
+    onMouseDown(word.index)
+  }, [word.index, onMouseDown])
+  
+  const handleMouseEnter = useCallback(() => {
+    onMouseEnter(word.index)
+  }, [word.index, onMouseEnter])
+  
   return (
     <span
       ref={spanRef}
       className={cn(
         'word-clickable',
         isSelected && 'word-selected',
-        isInPhraseSelection && 'bg-blue-100'
+        isInPhraseSelection && 'phrase-selected'
       )}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
       data-word-id={word.id}
       data-word-index={word.index}
     >

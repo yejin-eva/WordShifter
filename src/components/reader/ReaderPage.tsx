@@ -1,9 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 import { ProcessedWord } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
 import { TranslationBubble } from './TranslationBubble'
 import { useTextStore } from '@/stores/useTextStore'
 import { useUIStore } from '@/stores/useUIStore'
+import { getTranslationService } from '@/services/translation/translationService'
 
 interface ReaderPageProps {
   onBack: () => void
@@ -16,14 +17,30 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     bubblePosition, 
     bubblePlacement,
     selectWord, 
-    clearSelection 
+    clearSelection,
+    clearPhraseSelection,
   } = useUIStore()
+  
+  // Get translation service instance
+  const translationService = useMemo(() => getTranslationService(), [])
+  
+  // Phrase translation state
+  const [phraseTranslation, setPhraseTranslation] = useState<{
+    text: string
+    translation: string
+    position: { x: number; y: number }
+    placement: 'above' | 'below'
+  } | null>(null)
+  const [, setIsTranslatingPhrase] = useState(false)
   
   // Get the selected word for the bubble
   const selectedWord = selectedWordId ? getWordById(selectedWordId) : undefined
   
   // Handle word click - show translation bubble
   const handleWordClick = useCallback((word: ProcessedWord, element: HTMLSpanElement) => {
+    // Clear phrase translation when clicking a single word
+    setPhraseTranslation(null)
+    
     const rect = element.getBoundingClientRect()
     const viewportHeight = window.innerHeight
     
@@ -38,6 +55,57 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     
     selectWord(word.id, position, placement)
   }, [selectWord])
+  
+  // Handle phrase click - translate the phrase
+  const handlePhraseClick = useCallback(async (words: ProcessedWord[], element: HTMLSpanElement) => {
+    if (!currentText || words.length < 2) return
+    
+    // Build phrase text
+    const phraseText = words.map(w => w.original).join(' ')
+    
+    // Calculate position
+    const rect = element.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const placement = rect.top > viewportHeight / 2 ? 'above' : 'below'
+    const position = {
+      x: rect.left + rect.width / 2,
+      y: placement === 'above' ? rect.top : rect.bottom,
+    }
+    
+    // Show loading state
+    setIsTranslatingPhrase(true)
+    setPhraseTranslation({
+      text: phraseText,
+      translation: 'Translating...',
+      position,
+      placement,
+    })
+    
+    try {
+      // Translate the phrase
+      const result = await translationService.translatePhrase(
+        phraseText,
+        { source: currentText.sourceLanguage, target: currentText.targetLanguage }
+      )
+      
+      setPhraseTranslation({
+        text: phraseText,
+        translation: result.translation,
+        position,
+        placement,
+      })
+    } catch (error) {
+      console.error('Phrase translation failed:', error)
+      setPhraseTranslation({
+        text: phraseText,
+        translation: '(translation failed)',
+        position,
+        placement,
+      })
+    } finally {
+      setIsTranslatingPhrase(false)
+    }
+  }, [currentText])
   
   // Handle double-click - save to vocabulary
   const handleWordDoubleClick = useCallback((word: ProcessedWord) => {
@@ -54,6 +122,22 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     clearSelection()
   }, [selectedWord, clearSelection])
+  
+  // Handle save phrase
+  const handleSavePhrase = useCallback(() => {
+    if (phraseTranslation) {
+      console.log('Save phrase to vocabulary:', phraseTranslation)
+      alert(`Saved "${phraseTranslation.text}" → "${phraseTranslation.translation}" to vocabulary!`)
+    }
+    setPhraseTranslation(null)
+    clearPhraseSelection()
+  }, [phraseTranslation, clearPhraseSelection])
+  
+  // Close phrase bubble
+  const handleClosePhraseTranslation = useCallback(() => {
+    setPhraseTranslation(null)
+    clearPhraseSelection()
+  }, [clearPhraseSelection])
   
   if (!currentText) {
     return (
@@ -94,10 +178,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         processedText={currentText}
         onWordClick={handleWordClick}
         onWordDoubleClick={handleWordDoubleClick}
+        onPhraseClick={handlePhraseClick}
       />
       
-      {/* Translation bubble */}
-      {selectedWord && bubblePosition && (
+      {/* Single word translation bubble */}
+      {selectedWord && bubblePosition && !phraseTranslation && (
         <TranslationBubble
           translation={selectedWord.translation}
           partOfSpeech={selectedWord.partOfSpeech}
@@ -105,6 +190,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           placement={bubblePlacement}
           onSave={handleSaveWord}
           onClose={clearSelection}
+        />
+      )}
+      
+      {/* Phrase translation bubble */}
+      {phraseTranslation && (
+        <TranslationBubble
+          translation={phraseTranslation.translation}
+          partOfSpeech="phrase"
+          position={phraseTranslation.position}
+          placement={phraseTranslation.placement}
+          onSave={handleSavePhrase}
+          onClose={handleClosePhraseTranslation}
         />
       )}
     </div>

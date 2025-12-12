@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { cn } from '@/utils/cn'
 
 interface TranslationBubbleProps {
   translation: string
@@ -30,7 +31,6 @@ export function TranslationBubble({
       }
       
       // If clicking on another word, let the word handler deal with it
-      // The word click will automatically select the new word
       if (target.closest('.word-clickable')) {
         return
       }
@@ -56,15 +56,15 @@ export function TranslationBubble({
     left: position.x,
     transform: 'translateX(-50%)',
     ...(placement === 'above' 
-      ? { bottom: `calc(100vh - ${position.y}px + 8px)` }
-      : { top: position.y + 8 }
+      ? { bottom: `calc(100vh - ${position.y}px + 12px)` }
+      : { top: position.y + 12 }
     ),
   }
   
   return (
     <div
       ref={bubbleRef}
-      className="translation-bubble flex items-center gap-2 animate-in fade-in-0 zoom-in-95 duration-150"
+      className="translation-bubble flex items-center gap-2"
       style={style}
     >
       {/* Translation text */}
@@ -85,7 +85,7 @@ export function TranslationBubble({
           e.stopPropagation()
           onSave()
         }}
-        className="text-yellow-500 hover:text-yellow-600 transition-colors ml-1"
+        className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-all ml-1"
         title="Save to vocabulary"
       >
         ⭐
@@ -95,19 +95,14 @@ export function TranslationBubble({
       <div 
         className={cn(
           'absolute left-1/2 -translate-x-1/2 w-0 h-0',
-          'border-l-[6px] border-l-transparent',
-          'border-r-[6px] border-r-transparent',
+          'border-l-[8px] border-l-transparent',
+          'border-r-[8px] border-r-transparent',
           placement === 'above' 
-            ? 'bottom-0 translate-y-full border-t-[6px] border-t-white'
-            : 'top-0 -translate-y-full border-b-[6px] border-b-white'
+            ? '-bottom-2 border-t-[8px] border-t-white'
+            : '-top-2 border-b-[8px] border-b-white'
         )}
       />
     </div>
   )
-}
-
-// Helper function to import cn if not using it
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ')
 }
 
