@@ -1,54 +1,78 @@
-import { useState } from 'react'
 import { Layout } from './components/layout/Layout'
 import { UploadPage } from './components/upload/UploadPage'
+import { ReaderPage } from './components/reader/ReaderPage'
+import { useTextStore } from './stores/useTextStore'
 import { LanguageCode } from './constants/languages'
 import { ProcessingMode } from './types/processing.types'
 
 function App() {
-  const [processedData, setProcessedData] = useState<{
-    file: File
-    sourceLanguage: LanguageCode
-    targetLanguage: LanguageCode
-    mode: ProcessingMode
-  } | null>(null)
+  const { currentText, processing, processFile, clearCurrentText } = useTextStore()
 
-  const handleProcess = (
+  const handleProcess = async (
     file: File, 
     sourceLanguage: LanguageCode, 
     targetLanguage: LanguageCode, 
     mode: ProcessingMode
   ) => {
-    setProcessedData({ file, sourceLanguage, targetLanguage, mode })
-    // TODO: Navigate to reader page in Milestone 2
-    console.log('Processing:', { 
-      fileName: file.name, 
-      sourceLanguage, 
-      targetLanguage, 
-      mode 
-    })
+    await processFile(file, sourceLanguage, targetLanguage, mode)
   }
 
-  return (
-    <Layout>
-      {!processedData ? (
-        <UploadPage onProcess={handleProcess} />
-      ) : (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-medium mb-4">Processing Complete!</h2>
-          <p className="text-gray-600 mb-4">
-            {processedData.file.name} ({processedData.sourceLanguage} → {processedData.targetLanguage})
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            Reader view will be implemented in Milestone 2
-          </p>
+  const handleBack = () => {
+    clearCurrentText()
+  }
+
+  // Show reader if we have processed text
+  if (currentText && processing.status === 'complete') {
+    return (
+      <Layout>
+        <ReaderPage onBack={handleBack} />
+      </Layout>
+    )
+  }
+
+  // Show processing progress
+  if (processing.status !== 'idle' && processing.status !== 'error') {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto text-center py-12">
+          <h2 className="text-xl font-medium mb-4">Processing...</h2>
+          
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${processing.progress}%` }}
+            />
+          </div>
+          
+          <p className="text-gray-600">{processing.currentStep}</p>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Show error
+  if (processing.status === 'error') {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto text-center py-12">
+          <h2 className="text-xl font-medium text-red-600 mb-4">Error</h2>
+          <p className="text-gray-600 mb-4">{processing.error}</p>
           <button
-            onClick={() => setProcessedData(null)}
-            className="px-4 py-2 text-primary hover:underline"
+            onClick={clearCurrentText}
+            className="text-blue-600 hover:underline"
           >
-            ← Upload another file
+            Try again
           </button>
         </div>
-      )}
+      </Layout>
+    )
+  }
+
+  // Show upload page
+  return (
+    <Layout>
+      <UploadPage onProcess={handleProcess} />
     </Layout>
   )
 }
