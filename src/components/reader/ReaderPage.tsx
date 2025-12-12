@@ -65,8 +65,12 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     // Select the word first (shows bubble immediately)
     selectWord(word.id, position, placement)
     
+    // Check FRESH word state from store (background may have translated it)
+    const freshWord = getWordById(word.id)
+    const needsTranslation = freshWord && !freshWord.translation && currentText
+    
     // If word has no translation yet (dynamic mode), translate now
-    if (!word.translation && currentText) {
+    if (needsTranslation) {
       setIsTranslatingWord(true)
       try {
         const result = await translationService.translateWord(
@@ -86,7 +90,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         setIsTranslatingWord(false)
       }
     }
-  }, [selectWord, currentText, translationService, updateWord])
+  }, [selectWord, currentText, translationService, updateWord, getWordById])
   
   // Handle phrase click - translate the phrase
   const handlePhraseClick = useCallback(async (words: ProcessedWord[], element: HTMLSpanElement) => {

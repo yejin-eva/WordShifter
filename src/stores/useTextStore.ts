@@ -227,7 +227,7 @@ export const useTextStore = create<TextStore>((set, get) => ({
   },
   
   translateRemainingWords: async (tokens, pair) => {
-    const BATCH_SIZE = 20 // Translate 20 words at a time in background
+    const BATCH_SIZE = 10 // Smaller batches = more responsive UI
     const translationService = getTranslationService()
     const { currentText } = get()
     
@@ -235,9 +235,18 @@ export const useTextStore = create<TextStore>((set, get) => ({
     
     set({ backgroundProgress: 0 })
     
-    // Process in batches
+    // Build index map for O(1) lookups
+    const indexToArrayPos = new Map<number, number>()
+    currentText.words.forEach((word, arrayPos) => {
+      indexToArrayPos.set(word.index, arrayPos)
+    })
+    
+    // Process in batches with longer delays
     for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
       const batch = tokens.slice(i, i + BATCH_SIZE)
+      
+      // Yield to UI thread before each batch
+      await new Promise(resolve => setTimeout(resolve, 0))
       
       try {
         const translatedBatch = await translationService.processTokens(
@@ -246,15 +255,15 @@ export const useTextStore = create<TextStore>((set, get) => ({
           () => {} // No progress callback for background
         )
         
-        // Update each word in the store
+        // Update each word in the store (O(1) lookups now)
         const { currentText: latestText } = get()
         if (!latestText) return // User navigated away
         
         const updatedWords = [...latestText.words]
         for (const translated of translatedBatch) {
-          const wordIndex = updatedWords.findIndex(w => w.index === translated.index)
-          if (wordIndex !== -1) {
-            updatedWords[wordIndex] = translated
+          const arrayPos = indexToArrayPos.get(translated.index)
+          if (arrayPos !== undefined) {
+            updatedWords[arrayPos] = translated
           }
         }
         
@@ -269,8 +278,8 @@ export const useTextStore = create<TextStore>((set, get) => ({
         // Continue with next batch
       }
       
-      // Small delay to avoid overwhelming the translation service
-      await new Promise(resolve => setTimeout(resolve, 50))
+      // Longer delay between batches to let UI breathe
+      await new Promise(resolve => setTimeout(resolve, 200))
     }
     
     set({ backgroundProgress: 100 })
