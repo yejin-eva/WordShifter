@@ -27,10 +27,25 @@ class DictionaryService {
         return
       }
       
-      const data: DictionaryEntry[] = await response.json()
+      const rawData = await response.json()
       const dict = new Map<string, DictionaryEntry>()
-      for (const entry of data) {
-        dict.set(entry.word.toLowerCase(), entry)
+      
+      // Handle both array format and object format
+      if (Array.isArray(rawData)) {
+        // Array format: [{ word, translation, pos }, ...]
+        for (const entry of rawData) {
+          dict.set(entry.word.toLowerCase(), entry)
+        }
+      } else {
+        // Object format: { "word": { translation, pos }, ... }
+        for (const [word, value] of Object.entries(rawData)) {
+          const entry = value as { translation: string; pos: string }
+          dict.set(word.toLowerCase(), {
+            word: word,
+            translation: entry.translation,
+            pos: entry.pos,
+          })
+        }
       }
       
       this.dictionaries.set(key, dict)
