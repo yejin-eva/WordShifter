@@ -40,22 +40,57 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Container ref for measuring dimensions (pagination)
   const textContainerRef = useRef<HTMLDivElement | null>(null)
+  const measureContainerRef = useRef<HTMLDivElement | null>(null)
   const [containerHeight, setContainerHeight] = useState(500)
   const [containerWidth, setContainerWidth] = useState(800)
   
-  // Measure container dimensions for pagination
+  // Measure container dimensions for pagination using ResizeObserver
   useEffect(() => {
     const updateDimensions = () => {
-      if (textContainerRef.current) {
-        setContainerHeight(textContainerRef.current.clientHeight)
-        setContainerWidth(textContainerRef.current.clientWidth)
+      // Use the measurement container (always visible) for accurate dimensions
+      const container = measureContainerRef.current
+      if (container) {
+        const height = container.clientHeight
+        const width = container.clientWidth
+        if (height > 0 && width > 0) {
+          setContainerHeight(height)
+          setContainerWidth(width)
+        }
       }
     }
     
+    // Initial measurement
     updateDimensions()
+    
+    // Use ResizeObserver for accurate resize detection
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions()
+    })
+    
+    if (measureContainerRef.current) {
+      resizeObserver.observe(measureContainerRef.current)
+    }
+    
+    // Also listen to window resize as backup
     window.addEventListener('resize', updateDimensions)
-    return () => window.removeEventListener('resize', updateDimensions)
+    
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', updateDimensions)
+    }
   }, [])
+  
+  // Re-measure when switching to page mode
+  useEffect(() => {
+    if (displayMode === 'page' && measureContainerRef.current) {
+      const height = measureContainerRef.current.clientHeight
+      const width = measureContainerRef.current.clientWidth
+      if (height > 0 && width > 0) {
+        setContainerHeight(height)
+        setContainerWidth(width)
+      }
+    }
+  }, [displayMode])
   
   // Pagination hook
   const pagination = usePagination({
@@ -372,30 +407,32 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         </div>
       </div>
       
-      {/* Text content - render BOTH views, toggle visibility with CSS */}
-      {/* This prevents re-rendering 200K tokens when switching modes */}
-      
-      {/* Scroll mode view - always in DOM */}
-      <div 
-        className={`flex-1 overflow-auto ${displayMode === 'scroll' ? '' : 'hidden'}`}
-      >
-        <TextDisplay
-          processedText={currentText}
-          onWordClick={handleWordClick}
-          onWordDoubleClick={handleWordDoubleClick}
-          onPhraseClick={handlePhraseClick}
-        />
-      </div>
-      
-      {/* Page mode view */}
-      <div 
-        ref={(el) => {
-          // Combine refs for pagination measurement
-          textContainerRef.current = el
-          ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
-        }}
-        className={`flex-1 relative overflow-hidden pb-8 pt-2 ${displayMode === 'page' ? '' : 'hidden'}`}
-      >
+      {/* Container wrapper for dimension measurement - always visible */}
+      <div ref={measureContainerRef} className="flex-1 flex flex-col min-h-0">
+        {/* Text content - render BOTH views, toggle visibility with CSS */}
+        {/* This prevents re-rendering 200K tokens when switching modes */}
+        
+        {/* Scroll mode view - always in DOM */}
+        <div 
+          className={`flex-1 overflow-auto ${displayMode === 'scroll' ? '' : 'hidden'}`}
+        >
+          <TextDisplay
+            processedText={currentText}
+            onWordClick={handleWordClick}
+            onWordDoubleClick={handleWordDoubleClick}
+            onPhraseClick={handlePhraseClick}
+          />
+        </div>
+        
+        {/* Page mode view */}
+        <div 
+          ref={(el) => {
+            // Combine refs for swipe gestures
+            textContainerRef.current = el
+            ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+          }}
+          className={`flex-1 relative overflow-hidden pb-8 pt-2 ${displayMode === 'page' ? '' : 'hidden'}`}
+        >
         <TextDisplay
           processedText={currentText}
           tokens={pagination.pageTokens}
@@ -421,6 +458,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           }}
           title="Next page"
         />
+        </div>
       </div>
       
       {/* Page navigation (only in page mode) */}
