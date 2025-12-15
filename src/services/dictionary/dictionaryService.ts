@@ -30,21 +30,28 @@ class DictionaryService {
       const rawData = await response.json()
       const dict = new Map<string, DictionaryEntry>()
       
-      // Handle both array format and object format
+      // Handle multiple formats
       if (Array.isArray(rawData)) {
         // Array format: [{ word, translation, pos }, ...]
         for (const entry of rawData) {
           dict.set(entry.word.toLowerCase(), entry)
         }
       } else {
-        // Object format: { "word": { translation, pos }, ... }
+        // Object format (two variants)
         for (const [word, value] of Object.entries(rawData)) {
-          const entry = value as { translation: string; pos: string }
-          dict.set(word.toLowerCase(), {
-            word: word,
-            translation: entry.translation,
-            pos: entry.pos,
-          })
+          const v = value as Record<string, string>
+          
+          // Check for compact format { t: translation, p: pos } or full { translation, pos }
+          const translation = v.t || v.translation || ''
+          const pos = v.p || v.pos || ''
+          
+          if (translation) {
+            dict.set(word.toLowerCase(), {
+              word: word,
+              translation: translation,
+              pos: pos,
+            })
+          }
         }
       }
       
