@@ -29,3 +29,6 @@ coverage/
 # Misc
 *.local
 
+# Dictionary cache (large source files)
+.dictionary-cache/
+
