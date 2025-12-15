@@ -10,6 +10,7 @@ import { useVocabularyStore } from '@/stores/useVocabularyStore'
 import { getTranslationService } from '@/services/translation/translationService'
 import { LanguageCode } from '@/constants/languages'
 import { usePagination } from '@/hooks/usePagination'
+import { useSwipeGesture } from '@/hooks/useSwipeGesture'
 
 interface ReaderPageProps {
   onBack: () => void
@@ -52,6 +53,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   const pagination = usePagination({
     tokens: currentText?.tokens || [],
     containerHeight,
+  })
+  
+  // Swipe gesture for page navigation on touch devices
+  const swipeRef = useSwipeGesture<HTMLDivElement>({
+    onSwipeLeft: pagination.nextPage,
+    onSwipeRight: pagination.prevPage,
+    enabled: displayMode === 'page',
   })
   
   // Get translation service instance (stable)
@@ -357,8 +365,12 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       
       {/* Text content */}
       <div 
-        ref={textContainerRef}
-        className={`flex-1 ${displayMode === 'page' ? 'overflow-hidden' : 'overflow-auto'}`}
+        ref={(el) => {
+          // Combine refs
+          textContainerRef.current = el
+          ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+        }}
+        className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden' : 'overflow-auto'}`}
       >
         <TextDisplay
           processedText={currentText}
@@ -367,6 +379,30 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           onWordDoubleClick={handleWordDoubleClick}
           onPhraseClick={handlePhraseClick}
         />
+        
+        {/* Tap zones for page navigation (only in page mode) */}
+        {displayMode === 'page' && (
+          <>
+            {/* Left tap zone - previous page */}
+            <div 
+              className="absolute left-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                pagination.prevPage()
+              }}
+              title="Previous page"
+            />
+            {/* Right tap zone - next page */}
+            <div 
+              className="absolute right-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                pagination.nextPage()
+              }}
+              title="Next page"
+            />
+          </>
+        )}
       </div>
       
       {/* Page navigation (only in page mode) */}
