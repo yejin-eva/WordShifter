@@ -4,6 +4,7 @@ import { Token } from '@/types/text.types'
 interface UsePaginationOptions {
   tokens: Token[]
   containerHeight: number
+  containerWidth: number
   lineHeight?: number
   fontSize?: number
   padding?: number
@@ -38,6 +39,7 @@ interface UsePaginationReturn {
 export function usePagination({
   tokens,
   containerHeight,
+  containerWidth,
   lineHeight = 32,  // 2rem default
   fontSize = 18,
   padding = 48,     // Top + bottom padding
@@ -47,9 +49,11 @@ export function usePagination({
   // Calculate available height for text
   const availableHeight = containerHeight - padding
   
-  // Estimate characters per line based on average container width
-  // This is approximate - actual rendering may vary
-  const charsPerLine = 80  // Reasonable default for readable text
+  // Calculate characters per line based on container width and font size
+  // Average character width is roughly 0.5-0.6 of font size for proportional fonts
+  const avgCharWidth = fontSize * 0.55
+  const availableWidth = containerWidth - 32 // Account for padding
+  const charsPerLine = Math.max(40, Math.floor(availableWidth / avgCharWidth))
   
   // Calculate lines per page
   const linesPerPage = Math.max(1, Math.floor(availableHeight / lineHeight))
@@ -111,6 +115,11 @@ export function usePagination({
     
     return breaks
   }, [tokens, linesPerPage, charsPerLine])
+  
+  // Reset to page 1 when dimensions change significantly
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [linesPerPage, charsPerLine])
   
   // Calculate total pages
   const totalPages = Math.max(1, pageBreaks.length)

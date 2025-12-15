@@ -32,27 +32,30 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
   
-  // Container ref for measuring height (pagination)
-  const textContainerRef = useRef<HTMLDivElement>(null)
+  // Container ref for measuring dimensions (pagination)
+  const textContainerRef = useRef<HTMLDivElement | null>(null)
   const [containerHeight, setContainerHeight] = useState(500)
+  const [containerWidth, setContainerWidth] = useState(800)
   
-  // Measure container height for pagination
+  // Measure container dimensions for pagination
   useEffect(() => {
-    const updateHeight = () => {
+    const updateDimensions = () => {
       if (textContainerRef.current) {
         setContainerHeight(textContainerRef.current.clientHeight)
+        setContainerWidth(textContainerRef.current.clientWidth)
       }
     }
     
-    updateHeight()
-    window.addEventListener('resize', updateHeight)
-    return () => window.removeEventListener('resize', updateHeight)
+    updateDimensions()
+    window.addEventListener('resize', updateDimensions)
+    return () => window.removeEventListener('resize', updateDimensions)
   }, [])
   
   // Pagination hook
   const pagination = usePagination({
     tokens: currentText?.tokens || [],
     containerHeight,
+    containerWidth,
   })
   
   // Swipe gesture for page navigation on touch devices
