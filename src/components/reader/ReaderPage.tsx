@@ -30,11 +30,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode,
   } = useUIStore()
   
-  // Handle mode switch - instant because we keep both views in DOM
-  const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
-    if (mode === displayMode) return
-    setDisplayMode(mode)
-  }, [displayMode, setDisplayMode])
+  // Ref for scroll container (needed for mode switch position tracking)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   
   // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
@@ -144,9 +141,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     return () => clearTimeout(saveTimeoutRef.current)
   }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex])
   
-  // Ref for scroll container
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-  
   // Save reading position on scroll (debounced) - SCROLL MODE
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'scroll') return
@@ -197,6 +191,87 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       }
     }, 100)
   }, [currentText?.lastReadTokenIndex, displayMode])
+  
+  // Track current reading position (token index) - updated continuously
+  const [currentTokenPosition, setCurrentTokenPosition] = useState(0)
+  
+  // Update position when page changes
+  useEffect(() => {
+    if (displayMode === 'page' && pagination.pageStartIndex > 0) {
+      setCurrentTokenPosition(pagination.pageStartIndex)
+    }
+  }, [displayMode, pagination.pageStartIndex])
+  
+  // Preserve position when page size changes (resize)
+  const lastTotalPagesRef = useRef(pagination.totalPages)
+  useEffect(() => {
+    // Only act if totalPages changed (means resize happened)
+    if (pagination.totalPages !== lastTotalPagesRef.current && displayMode === 'page') {
+      // Navigate to page containing current position
+      if (currentTokenPosition > 0) {
+        pagination.goToTokenIndex(currentTokenPosition)
+      }
+      lastTotalPagesRef.current = pagination.totalPages
+    }
+  }, [pagination.totalPages, displayMode, currentTokenPosition, pagination.goToTokenIndex])
+  
+  // Update position when scrolling
+  useEffect(() => {
+    if (displayMode !== 'scroll') return
+    const container = scrollContainerRef.current
+    if (!container) return
+    
+    const updateScrollPosition = () => {
+      const words = container.querySelectorAll('[data-word-index]')
+      const containerTop = container.scrollTop
+      
+      for (const word of words) {
+        const wordTop = (word as HTMLElement).offsetTop
+        if (wordTop >= containerTop) {
+          const idx = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+          if (idx > 0) setCurrentTokenPosition(idx)
+          break
+        }
+      }
+    }
+    
+    // Throttle scroll updates
+    let timeout: NodeJS.Timeout
+    const throttledUpdate = () => {
+      clearTimeout(timeout)
+      timeout = setTimeout(updateScrollPosition, 200)
+    }
+    
+    container.addEventListener('scroll', throttledUpdate)
+    return () => {
+      container.removeEventListener('scroll', throttledUpdate)
+      clearTimeout(timeout)
+    }
+  }, [displayMode])
+  
+  // Handle mode switch
+  const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
+    if (mode === displayMode) return
+    
+    const positionToRestore = currentTokenPosition
+    setDisplayMode(mode)
+    
+    // Restore position after mode switch
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (mode === 'page') {
+          pagination.goToTokenIndex(positionToRestore)
+        } else if (mode === 'scroll' && scrollContainerRef.current) {
+          const targetWord = scrollContainerRef.current.querySelector(
+            `[data-word-index="${positionToRestore}"]`
+          ) as HTMLElement
+          if (targetWord) {
+            scrollContainerRef.current.scrollTop = targetWord.offsetTop - 20
+          }
+        }
+      }, 50)
+    })
+  }, [displayMode, setDisplayMode, currentTokenPosition, pagination.goToTokenIndex])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
