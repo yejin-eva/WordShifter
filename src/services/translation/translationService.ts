@@ -55,6 +55,8 @@ export class TranslationService {
   /**
    * Process all words in a token array
    * Returns ProcessedWord array with translations
+   * 
+   * Optimized: translates unique words first, then maps to all positions
    */
   async processTokens(
     tokens: Token[],
@@ -62,41 +64,51 @@ export class TranslationService {
     onProgress?: (progress: number) => void
   ): Promise<ProcessedWord[]> {
     const wordTokens = extractWords(tokens)
-    const processedWords: ProcessedWord[] = []
     
-    // Build a cache for unique words to avoid duplicate translations
+    // Step 1: Extract unique normalized words (instant)
+    const uniqueWordsMap = new Map<string, Token>()  // normalized -> first token with context
+    for (const token of wordTokens) {
+      const normalized = token.value.toLowerCase()
+      if (!uniqueWordsMap.has(normalized)) {
+        uniqueWordsMap.set(normalized, token)
+      }
+    }
+    
+    const uniqueWords = Array.from(uniqueWordsMap.entries())
+    console.log(`Translating ${uniqueWords.length} unique words (from ${wordTokens.length} total)`)
+    
+    // Step 2: Translate only unique words
     const translationCache = new Map<string, TranslationResult>()
     
-    for (let i = 0; i < wordTokens.length; i++) {
-      const token = wordTokens[i]
-      const normalizedWord = token.value.toLowerCase()
+    for (let i = 0; i < uniqueWords.length; i++) {
+      const [normalized, token] = uniqueWords[i]
       
-      // Check cache first
-      let result: TranslationResult
-      if (translationCache.has(normalizedWord)) {
-        result = translationCache.get(normalizedWord)!
-      } else {
-        // Get context and translate
-        const context = getWordContext(tokens, token.index)
-        result = await this.translateWord(token.value, context, pair)
-        translationCache.set(normalizedWord, result)
-      }
+      // Get context and translate
+      const context = getWordContext(tokens, token.index)
+      const result = await this.translateWord(token.value, context, pair)
+      translationCache.set(normalized, result)
       
-      processedWords.push({
-        id: `word-${token.index}`,
-        index: token.index,
-        original: token.value,
-        normalized: normalizedWord,
-        translation: result.translation,
-        partOfSpeech: result.partOfSpeech,
-      })
-      
-      // Report progress
+      // Report progress based on UNIQUE words (accurate progress!)
       if (onProgress) {
-        const progress = Math.round(((i + 1) / wordTokens.length) * 100)
+        const progress = Math.round(((i + 1) / uniqueWords.length) * 100)
         onProgress(progress)
       }
     }
+    
+    // Step 3: Map translations to all word positions (instant)
+    const processedWords: ProcessedWord[] = wordTokens.map(token => {
+      const normalized = token.value.toLowerCase()
+      const result = translationCache.get(normalized)!
+      
+      return {
+        id: `word-${token.index}`,
+        index: token.index,
+        original: token.value,
+        normalized,
+        translation: result.translation,
+        partOfSpeech: result.partOfSpeech,
+      }
+    })
     
     return processedWords
   }

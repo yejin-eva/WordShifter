@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { ProcessedText, ProcessingState, Token, ProcessedWord } from '@/types/text.types'
 import { LanguageCode } from '@/constants/languages'
 import { ProcessingMode } from '@/types/processing.types'
-import { LanguagePair } from '@/types/translation.types'
+import { LanguagePair, TranslationResult } from '@/types/translation.types'
 import { parseFile } from '@/services/fileParser'
 import { tokenize } from '@/services/language/tokenizer'
 import { getTranslationService } from '@/services/translation'
@@ -17,6 +17,9 @@ interface TextStore {
   
   // Background translation progress
   backgroundProgress: number // 0-100, for dynamic mode
+  
+  // Translation cache (shared across all batches)
+  translationCache: Map<string, TranslationResult>
   
   // Actions
   processFile: (
@@ -48,10 +51,14 @@ const initialProcessingState: ProcessingState = {
   currentStep: '',
 }
 
+// Global translation cache for current text (cleared on new text)
+const createTranslationCache = () => new Map<string, TranslationResult>()
+
 export const useTextStore = create<TextStore>((set, get) => ({
   currentText: null,
   processing: initialProcessingState,
   backgroundProgress: 100, // 100 = complete (or not started)
+  translationCache: createTranslationCache(),
   
   processFile: async (file, sourceLanguage, targetLanguage, mode) => {
     const pair: LanguagePair = { source: sourceLanguage, target: targetLanguage }
@@ -112,6 +119,10 @@ export const useTextStore = create<TextStore>((set, get) => ({
         // Dynamic mode: Translate first batch, continue in background
         const INITIAL_BATCH_SIZE = 50 // Translate first 50 words immediately
         
+        // Clear and reset translation cache for new text
+        const cache = createTranslationCache()
+        set({ translationCache: cache })
+        
         set({
           processing: {
             status: 'translating',
@@ -142,15 +153,30 @@ export const useTextStore = create<TextStore>((set, get) => ({
           }
         )
         
-        // Create placeholder words for the rest
-        const placeholderWords: ProcessedWord[] = remainingTokens.map(token => ({
-          id: crypto.randomUUID(),
-          original: token.value,
-          normalized: token.value.toLowerCase(),
-          translation: '', // Empty = will be translated in background
-          partOfSpeech: '',
-          index: token.index,
-        }))
+        // Populate cache with initial translations
+        for (const word of initialWords) {
+          cache.set(word.normalized, {
+            original: word.original,
+            translation: word.translation,
+            partOfSpeech: word.partOfSpeech || '',
+          })
+        }
+        console.log(`Initial batch: ${initialWords.length} words, ${cache.size} unique cached`)
+        
+        // Create placeholder words for the rest (use cache if already translated!)
+        const placeholderWords: ProcessedWord[] = remainingTokens.map(token => {
+          const normalized = token.value.toLowerCase()
+          const cached = cache.get(normalized)
+          
+          return {
+            id: crypto.randomUUID(),
+            original: token.value,
+            normalized,
+            translation: cached?.translation || '', // Use cache or empty
+            partOfSpeech: cached?.partOfSpeech || '',
+            index: token.index,
+          }
+        })
         
         processedWords = [...initialWords, ...placeholderWords]
         
@@ -236,62 +262,78 @@ export const useTextStore = create<TextStore>((set, get) => ({
   },
   
   translateRemainingWords: async (tokens, pair) => {
-    const BATCH_SIZE = 10 // Smaller batches = more responsive UI
     const translationService = getTranslationService()
-    const { currentText } = get()
+    const { currentText, translationCache: cache } = get()
     
     if (!currentText) return
     
     set({ backgroundProgress: 0 })
     
-    // Build index map for O(1) lookups
-    const indexToArrayPos = new Map<number, number>()
-    currentText.words.forEach((word, arrayPos) => {
-      indexToArrayPos.set(word.index, arrayPos)
-    })
+    // Step 1: Find unique words that haven't been translated yet
+    const untranslatedWords = new Map<string, Token>() // normalized -> first token
+    for (const token of tokens) {
+      const normalized = token.value.toLowerCase()
+      if (!cache.has(normalized) && !untranslatedWords.has(normalized)) {
+        untranslatedWords.set(normalized, token)
+      }
+    }
     
-    // Process in batches with longer delays
-    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
-      const batch = tokens.slice(i, i + BATCH_SIZE)
+    const uniqueToTranslate = Array.from(untranslatedWords.values())
+    console.log(`Background: ${tokens.length} words, ${uniqueToTranslate.length} unique to translate (${cache.size} already cached)`)
+    
+    // Step 2: Translate unique words in small batches
+    const BATCH_SIZE = 10
+    for (let i = 0; i < uniqueToTranslate.length; i += BATCH_SIZE) {
+      const batch = uniqueToTranslate.slice(i, i + BATCH_SIZE)
       
-      // Yield to UI thread before each batch
+      // Yield to UI thread
       await new Promise(resolve => setTimeout(resolve, 0))
       
       try {
         const translatedBatch = await translationService.processTokens(
           batch.map(t => ({ ...t, type: 'word' as const })),
           pair,
-          () => {} // No progress callback for background
+          () => {}
         )
         
-        // Update each word in the store (O(1) lookups now)
-        const { currentText: latestText } = get()
-        if (!latestText) return // User navigated away
-        
-        const updatedWords = [...latestText.words]
-        for (const translated of translatedBatch) {
-          const arrayPos = indexToArrayPos.get(translated.index)
-          if (arrayPos !== undefined) {
-            updatedWords[arrayPos] = translated
-          }
+        // Add to cache
+        for (const word of translatedBatch) {
+          cache.set(word.normalized, {
+            original: word.original,
+            translation: word.translation,
+            partOfSpeech: word.partOfSpeech || '',
+          })
         }
         
-        const progress = Math.round(((i + batch.length) / tokens.length) * 100)
-        set({
-          currentText: { ...latestText, words: updatedWords },
-          backgroundProgress: progress,
-        })
+        const progress = Math.round(((i + batch.length) / uniqueToTranslate.length) * 100)
+        set({ backgroundProgress: progress })
         
       } catch (error) {
         console.error('Background translation batch failed:', error)
-        // Continue with next batch
       }
       
-      // Longer delay between batches to let UI breathe
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Delay between batches
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
     
-    set({ backgroundProgress: 100 })
+    // Step 3: Update ALL words from cache in one go
+    const { currentText: latestText } = get()
+    if (!latestText) return
+    
+    const updatedWords = latestText.words.map(word => {
+      const cached = cache.get(word.normalized)
+      if (cached && !word.translation) {
+        return { ...word, translation: cached.translation, partOfSpeech: cached.partOfSpeech }
+      }
+      return word
+    })
+    
+    set({
+      currentText: { ...latestText, words: updatedWords },
+      backgroundProgress: 100,
+    })
+    
+    console.log(`Background complete: ${cache.size} unique translations cached`)
   },
   
   loadSavedText: async (id) => {
