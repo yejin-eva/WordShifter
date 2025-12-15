@@ -168,8 +168,13 @@ export const useTextStore = create<TextStore>((set, get) => ({
       [normalized]: { translation, partOfSpeech }
     }
     
-    set({
-      currentText: { ...currentText, wordDict: updatedWordDict }
+    const updatedText = { ...currentText, wordDict: updatedWordDict }
+    
+    set({ currentText: updatedText })
+    
+    // Persist to IndexedDB so it survives reload
+    textStorage.save(updatedText).catch(err => {
+      console.error('Failed to persist translation update:', err)
     })
   },
   
