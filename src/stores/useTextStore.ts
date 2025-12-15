@@ -12,6 +12,9 @@ interface TextStore {
   // Current text being read
   currentText: ProcessedText | null
   
+  // Word index for O(1) lookup by ID (built when text is set)
+  wordIndex: Map<string, ProcessedWord>
+  
   // Processing state
   processing: ProcessingState
   
@@ -54,8 +57,18 @@ const initialProcessingState: ProcessingState = {
 // Global translation cache for current text (cleared on new text)
 const createTranslationCache = () => new Map<string, TranslationResult>()
 
+// Build word index for O(1) lookup
+function buildWordIndex(words: ProcessedWord[]): Map<string, ProcessedWord> {
+  const index = new Map<string, ProcessedWord>()
+  for (const word of words) {
+    index.set(word.id, word)
+  }
+  return index
+}
+
 export const useTextStore = create<TextStore>((set, get) => ({
   currentText: null,
+  wordIndex: new Map(),  // O(1) lookup by word ID
   processing: initialProcessingState,
   backgroundProgress: 100, // 100 = complete (or not started)
   translationCache: createTranslationCache(),
@@ -228,6 +241,7 @@ export const useTextStore = create<TextStore>((set, get) => ({
       
       set({
         currentText: processedText,
+        wordIndex: buildWordIndex(processedText.words),  // Build index for O(1) lookup
         processing: {
           status: 'complete',
           progress: 100,
@@ -253,34 +267,40 @@ export const useTextStore = create<TextStore>((set, get) => ({
     }
   },
   
-  setCurrentText: (text) => set({ currentText: text }),
+  setCurrentText: (text) => set({ 
+    currentText: text,
+    wordIndex: text ? buildWordIndex(text.words) : new Map(),
+  }),
   
   clearCurrentText: () => set({ 
-    currentText: null, 
+    currentText: null,
+    wordIndex: new Map(),
     processing: initialProcessingState 
   }),
   
   getWordById: (wordId) => {
-    const { currentText } = get()
-    if (!currentText) return undefined
-    return currentText.words.find(w => w.id === wordId)
+    // O(1) lookup using index!
+    return get().wordIndex.get(wordId)
   },
   
   updateWord: (wordId, translation, partOfSpeech) => {
-    const { currentText } = get()
+    const { currentText, wordIndex } = get()
     if (!currentText) return
     
+    const updatedWord = { ...wordIndex.get(wordId)!, translation, partOfSpeech }
+    
+    // Update in array
     const updatedWords = currentText.words.map(word =>
-      word.id === wordId
-        ? { ...word, translation, partOfSpeech }
-        : word
+      word.id === wordId ? updatedWord : word
     )
     
+    // Update in index (O(1))
+    const newIndex = new Map(wordIndex)
+    newIndex.set(wordId, updatedWord)
+    
     set({
-      currentText: {
-        ...currentText,
-        words: updatedWords,
-      },
+      currentText: { ...currentText, words: updatedWords },
+      wordIndex: newIndex,
     })
   },
   
@@ -353,6 +373,7 @@ export const useTextStore = create<TextStore>((set, get) => ({
     
     set({
       currentText: { ...latestText, words: updatedWords },
+      wordIndex: buildWordIndex(updatedWords),  // Rebuild index
       backgroundProgress: 100,
     })
     
@@ -388,6 +409,7 @@ export const useTextStore = create<TextStore>((set, get) => ({
       
       set({
         currentText: savedText,
+        wordIndex: buildWordIndex(savedText.words),  // Build index for O(1) lookup
         backgroundProgress: 100,
         processing: {
           status: 'complete',
