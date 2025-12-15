@@ -1,6 +1,7 @@
 import { TranslationProvider, TranslationResult, LanguagePair, TranslationConfig, DEFAULT_TRANSLATION_CONFIG } from '@/types/translation.types'
 import { Token, ProcessedWord } from '@/types/text.types'
 import { extractWords, getWordContext } from '@/services/language/tokenizer'
+import { dictionaryService } from '@/services/dictionary'
 import { MockProvider } from './mockProvider'
 import { OllamaProvider } from './ollamaProvider'
 
@@ -53,10 +54,17 @@ export class TranslationService {
   }
   
   /**
+   * Load dictionary for a language pair
+   */
+  async loadDictionary(pair: LanguagePair): Promise<void> {
+    await dictionaryService.loadDictionary(pair)
+  }
+  
+  /**
    * Process all words in a token array
    * Returns ProcessedWord array with translations
    * 
-   * Optimized: translates unique words first, then maps to all positions
+   * Uses dictionary first (instant), falls back to LLM if not found
    */
   async processTokens(
     tokens: Token[],
@@ -65,8 +73,8 @@ export class TranslationService {
   ): Promise<ProcessedWord[]> {
     const wordTokens = extractWords(tokens)
     
-    // Step 1: Extract unique normalized words (instant)
-    const uniqueWordsMap = new Map<string, Token>()  // normalized -> first token with context
+    // Step 1: Extract unique normalized words
+    const uniqueWordsMap = new Map<string, Token>()
     for (const token of wordTokens) {
       const normalized = token.value.toLowerCase()
       if (!uniqueWordsMap.has(normalized)) {
@@ -75,27 +83,45 @@ export class TranslationService {
     }
     
     const uniqueWords = Array.from(uniqueWordsMap.entries())
-    console.log(`Translating ${uniqueWords.length} unique words (from ${wordTokens.length} total)`)
+    console.log(`Processing ${uniqueWords.length} unique words (from ${wordTokens.length} total)`)
     
-    // Step 2: Translate only unique words
+    // Step 2: Look up each unique word - dictionary first, then LLM
     const translationCache = new Map<string, TranslationResult>()
+    let dictHits = 0
+    let llmCalls = 0
     
     for (let i = 0; i < uniqueWords.length; i++) {
       const [normalized, token] = uniqueWords[i]
       
-      // Get context and translate
-      const context = getWordContext(tokens, token.index)
-      const result = await this.translateWord(token.value, context, pair)
-      translationCache.set(normalized, result)
+      // Try dictionary first (instant!)
+      const dictEntry = dictionaryService.lookup(normalized, pair)
       
-      // Report progress based on UNIQUE words (accurate progress!)
+      if (dictEntry) {
+        // Dictionary hit - use it
+        dictHits++
+        translationCache.set(normalized, {
+          original: token.value,
+          translation: dictEntry.translation,
+          partOfSpeech: dictEntry.pos,
+        })
+      } else {
+        // Dictionary miss - fall back to LLM
+        llmCalls++
+        const context = getWordContext(tokens, token.index)
+        const result = await this.translateWord(token.value, context, pair)
+        translationCache.set(normalized, result)
+      }
+      
+      // Report progress
       if (onProgress) {
         const progress = Math.round(((i + 1) / uniqueWords.length) * 100)
         onProgress(progress)
       }
     }
     
-    // Step 3: Map translations to all word positions (instant)
+    console.log(`Dictionary: ${dictHits} hits, LLM: ${llmCalls} calls`)
+    
+    // Step 3: Map translations to all word positions
     const processedWords: ProcessedWord[] = wordTokens.map(token => {
       const normalized = token.value.toLowerCase()
       const result = translationCache.get(normalized)!

@@ -93,12 +93,23 @@ export const useTextStore = create<TextStore>((set, get) => ({
         set({
           processing: {
             status: 'translating',
-            progress: 15,
-            currentStep: 'Translating words...',
+            progress: 12,
+            currentStep: 'Loading dictionary...',
           },
         })
         
         const translationService = getTranslationService()
+        
+        // Load dictionary first (for instant lookups)
+        await translationService.loadDictionary(pair)
+        
+        set({
+          processing: {
+            status: 'translating',
+            progress: 15,
+            currentStep: 'Translating words...',
+          },
+        })
         
         processedWords = await translationService.processTokens(
           tokens,
@@ -126,12 +137,24 @@ export const useTextStore = create<TextStore>((set, get) => ({
         set({
           processing: {
             status: 'translating',
+            progress: 12,
+            currentStep: 'Loading dictionary...',
+          },
+        })
+        
+        const translationService = getTranslationService()
+        
+        // Load dictionary first
+        await translationService.loadDictionary(pair)
+        
+        set({
+          processing: {
+            status: 'translating',
             progress: 15,
             currentStep: 'Translating first page...',
           },
         })
         
-        const translationService = getTranslationService()
         const wordTokens = tokens.filter(t => t.type === 'word')
         
         // Split into initial batch and rest
