@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo, useRef, useEffect, startTransition } from 'react'
+import { useCallback, useState, useMemo, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Token } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
@@ -29,24 +29,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode,
   } = useUIStore()
   
-  // Check if text is too large for scroll mode
-  const tokenCount = currentText?.tokens.length || 0
-  const isVeryLargeText = tokenCount > 30000  // ~15K words
-  
-  // Handle mode switch
+  // Handle mode switch - instant because we keep both views in DOM
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
-    
-    // For very large texts, warn about scroll mode or block it
-    if (mode === 'scroll' && isVeryLargeText) {
-      toast.error(`This text is too large for scroll mode (${Math.round(tokenCount / 2000)}K words). Please use Page mode.`)
-      return
-    }
-    
-    startTransition(() => {
-      setDisplayMode(mode)
-    })
-  }, [displayMode, setDisplayMode, isVeryLargeText, tokenCount])
+    setDisplayMode(mode)
+  }, [displayMode, setDisplayMode])
   
   // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
@@ -385,46 +372,55 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         </div>
       </div>
       
-      {/* Text content */}
+      {/* Text content - render BOTH views, toggle visibility with CSS */}
+      {/* This prevents re-rendering 200K tokens when switching modes */}
+      
+      {/* Scroll mode view - always in DOM */}
       <div 
-        ref={(el) => {
-          // Combine refs
-          textContainerRef.current = el
-          ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
-        }}
-        className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden pb-8 pt-2' : 'overflow-auto'}`}
+        className={`flex-1 overflow-auto ${displayMode === 'scroll' ? '' : 'hidden'}`}
       >
         <TextDisplay
           processedText={currentText}
-          tokens={displayMode === 'page' ? pagination.pageTokens : undefined}
+          onWordClick={handleWordClick}
+          onWordDoubleClick={handleWordDoubleClick}
+          onPhraseClick={handlePhraseClick}
+        />
+      </div>
+      
+      {/* Page mode view */}
+      <div 
+        ref={(el) => {
+          // Combine refs for pagination measurement
+          textContainerRef.current = el
+          ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+        }}
+        className={`flex-1 relative overflow-hidden pb-8 pt-2 ${displayMode === 'page' ? '' : 'hidden'}`}
+      >
+        <TextDisplay
+          processedText={currentText}
+          tokens={pagination.pageTokens}
           onWordClick={handleWordClick}
           onWordDoubleClick={handleWordDoubleClick}
           onPhraseClick={handlePhraseClick}
         />
         
-        {/* Tap zones for page navigation (only in page mode) */}
-        {displayMode === 'page' && (
-          <>
-            {/* Left tap zone - previous page */}
-            <div 
-              className="absolute left-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation()
-                pagination.prevPage()
-              }}
-              title="Previous page"
-            />
-            {/* Right tap zone - next page */}
-            <div 
-              className="absolute right-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation()
-                pagination.nextPage()
-              }}
-              title="Next page"
-            />
-          </>
-        )}
+        {/* Tap zones for page navigation */}
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation()
+            pagination.prevPage()
+          }}
+          title="Previous page"
+        />
+        <div 
+          className="absolute right-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation()
+            pagination.nextPage()
+          }}
+          title="Next page"
+        />
       </div>
       
       {/* Page navigation (only in page mode) */}
