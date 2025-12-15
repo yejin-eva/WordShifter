@@ -219,19 +219,23 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Preserve position when page size changes (resize or font change)
   const lastTotalPagesRef = useRef(pagination.totalPages)
   const lastFontSizeRef = useRef(fontSize)
+  const currentTokenPositionRef = useRef(currentTokenPosition)
+  currentTokenPositionRef.current = currentTokenPosition  // Always keep ref updated
+  
   useEffect(() => {
     const totalPagesChanged = pagination.totalPages !== lastTotalPagesRef.current
     const fontSizeChanged = fontSize !== lastFontSizeRef.current
     
-    // Restore position if totalPages or fontSize changed
+    // Only restore if something actually changed
     if ((totalPagesChanged || fontSizeChanged) && displayMode === 'page') {
-      if (currentTokenPosition > 0) {
-        pagination.goToTokenIndex(currentTokenPosition)
+      const pos = currentTokenPositionRef.current
+      if (pos > 0) {
+        pagination.goToTokenIndex(pos)
       }
       lastTotalPagesRef.current = pagination.totalPages
       lastFontSizeRef.current = fontSize
     }
-  }, [pagination.totalPages, fontSize, displayMode, currentTokenPosition, pagination.goToTokenIndex])
+  }, [pagination.totalPages, fontSize, displayMode, pagination.goToTokenIndex])
   
   // Update position when scrolling
   useEffect(() => {
@@ -267,11 +271,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [displayMode])
   
-  // Handle mode switch
+  // Handle mode switch - use ref to avoid dependency on currentTokenPosition
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
     
-    const positionToRestore = currentTokenPosition
+    const positionToRestore = currentTokenPositionRef.current
     setDisplayMode(mode)
     
     // Restore position after mode switch
@@ -289,7 +293,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         }
       }, 50)
     })
-  }, [displayMode, setDisplayMode, currentTokenPosition, pagination.goToTokenIndex])
+  }, [displayMode, setDisplayMode, pagination.goToTokenIndex])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
@@ -542,10 +546,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   if (!currentText) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">No text loaded</p>
+        <p className="text-gray-600 dark:text-gray-400">No text loaded</p>
         <button
           onClick={onBack}
-          className="mt-4 text-blue-600 hover:underline"
+          className="mt-4 text-blue-600 dark:text-blue-400 hover:underline"
         >
           ← Go back to upload
         </button>
@@ -556,15 +560,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   return (
     <div className="relative flex flex-col h-full">
       {/* Header bar */}
-      <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
         >
           ← Back
         </button>
         
-        <h2 className="text-lg font-medium text-gray-900">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {currentText.title}
         </h2>
         
@@ -575,8 +579,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
               onClick={() => handleModeSwitch('scroll')}
               className={`px-2 py-1 rounded transition-colors ${
                 displayMode === 'scroll' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               📜 Scroll
@@ -585,15 +589,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
               onClick={() => handleModeSwitch('page')}
               className={`px-2 py-1 rounded transition-colors ${
                 displayMode === 'page' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               📖 Page
             </button>
           </div>
           
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}
           </div>
           

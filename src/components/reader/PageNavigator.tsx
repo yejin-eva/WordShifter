@@ -22,7 +22,7 @@ export const PageNavigator = memo(function PageNavigator({
   hasNextPage,
 }: PageNavigatorProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-4 bg-gray-50 border-t border-gray-200 mt-4 rounded-t-lg">
+    <div className="flex items-center justify-between px-4 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-4 rounded-t-lg">
       {/* Previous button */}
       <button
         onClick={onPrevPage}
@@ -30,8 +30,8 @@ export const PageNavigator = memo(function PageNavigator({
         className={`
           flex items-center gap-1 px-4 py-2 rounded-lg transition-colors
           ${hasPrevPage 
-            ? 'text-gray-700 hover:bg-gray-100 active:bg-gray-200' 
-            : 'text-gray-300 cursor-not-allowed'
+            ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600' 
+            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
           }
         `}
         aria-label="Previous page"
@@ -41,9 +41,9 @@ export const PageNavigator = memo(function PageNavigator({
       </button>
       
       {/* Page indicator */}
-      <div className="text-sm text-gray-600">
-        Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
-        <span className="font-medium text-gray-900">{totalPages}</span>
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        Page <span className="font-medium text-gray-900 dark:text-white">{currentPage}</span> of{' '}
+        <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
       </div>
       
       {/* Next button */}
@@ -53,8 +53,8 @@ export const PageNavigator = memo(function PageNavigator({
         className={`
           flex items-center gap-1 px-4 py-2 rounded-lg transition-colors
           ${hasNextPage 
-            ? 'text-gray-700 hover:bg-gray-100 active:bg-gray-200' 
-            : 'text-gray-300 cursor-not-allowed'
+            ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600' 
+            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
           }
         `}
         aria-label="Next page"

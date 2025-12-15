@@ -64,8 +64,8 @@ export function UploadPage({ onProcess }: UploadPageProps) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-medium mb-2">Upload Text</h2>
-        <p className="text-gray-600">
+        <h2 className="text-2xl font-medium mb-2 text-gray-900 dark:text-white">Upload Text</h2>
+        <p className="text-gray-600 dark:text-gray-400">
           Upload a text file and select your target language
         </p>
       </div>
@@ -102,13 +102,13 @@ export function UploadPage({ onProcess }: UploadPageProps) {
 
       {/* Text Preview */}
       {isLoading && (
-        <div className="mt-6 text-center text-gray-500">
+        <div className="mt-6 text-center text-gray-500 dark:text-gray-400">
           Loading file...
         </div>
       )}
       
       {error && (
-        <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
           {error}
         </div>
       )}
@@ -128,7 +128,7 @@ export function UploadPage({ onProcess }: UploadPageProps) {
             px-8 py-3 rounded-lg font-medium transition-colors
             ${canProcess
               ? 'bg-primary text-white hover:bg-primary-hover'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
             }
           `}
         >
@@ -136,7 +136,7 @@ export function UploadPage({ onProcess }: UploadPageProps) {
         </button>
         
         {!canProcess && (
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             {!selectedFile 
               ? 'Upload a file to continue'
               : !targetLanguage 

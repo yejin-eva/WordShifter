@@ -72,13 +72,13 @@ export function TranslationBubble({
       style={style}
     >
       {/* Translation text */}
-      <span className={cn('font-medium text-gray-900', isRetrying && 'opacity-50')}>
+      <span className={cn('font-medium text-gray-900 dark:text-white', isRetrying && 'opacity-50')}>
         {isRetrying ? 'Retrying...' : translation}
       </span>
       
       {/* Part of speech */}
       {partOfSpeech && partOfSpeech !== 'unknown' && !isRetrying && (
-        <span className="text-gray-500 text-sm">
+        <span className="text-gray-500 dark:text-gray-400 text-sm">
           ({partOfSpeech})
         </span>
       )}
@@ -124,8 +124,8 @@ export function TranslationBubble({
           'border-l-[8px] border-l-transparent',
           'border-r-[8px] border-r-transparent',
           placement === 'above' 
-            ? '-bottom-2 border-t-[8px] border-t-white'
-            : '-top-2 border-b-[8px] border-b-white'
+            ? '-bottom-2 border-t-[8px] border-t-white dark:border-t-gray-700'
+            : '-top-2 border-b-[8px] border-b-white dark:border-b-gray-700'
         )}
       />
     </div>

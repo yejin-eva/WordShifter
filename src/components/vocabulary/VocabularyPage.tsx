@@ -61,12 +61,12 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
         >
           ← Back
         </button>
         
-        <h1 className="text-2xl font-semibold text-gray-900">Vocabulary</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Vocabulary</h1>
         
         <button
           onClick={handleCopyAll}
@@ -78,7 +78,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
       </div>
       
       {/* Filters */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
           {/* Filter type buttons */}
           <div className="flex gap-2">
@@ -88,7 +88,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
                 'px-3 py-1.5 text-sm rounded-lg transition-colors',
                 filter.type === 'all'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               )}
             >
               All
@@ -100,7 +100,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
                 'px-3 py-1.5 text-sm rounded-lg transition-colors',
                 filter.type === 'byLanguage'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                  : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50'
               )}
             >
               By Language
@@ -112,7 +112,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
             <select
               value={sourceLanguage}
               onChange={(e) => setSourceLanguage(e.target.value as LanguageCode)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg"
             >
               <option value="">Source...</option>
               {SUPPORTED_LANGUAGES.map(lang => (
@@ -120,12 +120,12 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
               ))}
             </select>
             
-            <span className="text-gray-400">→</span>
+            <span className="text-gray-400 dark:text-gray-500">→</span>
             
             <select
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value as LanguageCode)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg"
             >
               <option value="">Target...</option>
               {SUPPORTED_LANGUAGES.map(lang => (
@@ -135,7 +135,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
           </div>
           
           {/* Entry count */}
-          <div className="text-sm text-gray-500 ml-auto">
+          <div className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
           </div>
         </div>
@@ -143,11 +143,11 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
       
       {/* Entries list */}
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Loading...</div>
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
       ) : entries.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-2">No vocabulary saved yet</p>
-          <p className="text-sm text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400 mb-2">No vocabulary saved yet</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">
             Double-click words or click 💾 while reading to save them
           </p>
         </div>
@@ -156,21 +156,21 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
           {entries.map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+              className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">{entry.original}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{entry.original}</span>
                   {entry.partOfSpeech !== 'unknown' && (
-                    <span className="text-xs text-gray-500">({entry.partOfSpeech})</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">({entry.partOfSpeech})</span>
                   )}
                   {entry.isPhrase && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">phrase</span>
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">phrase</span>
                   )}
                 </div>
-                <div className="text-gray-600">{entry.translation}</div>
+                <div className="text-gray-600 dark:text-gray-300">{entry.translation}</div>
                 {entry.textTitle && (
-                  <div className="text-xs text-gray-400 mt-1">from: {entry.textTitle}</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">from: {entry.textTitle}</div>
                 )}
               </div>
               

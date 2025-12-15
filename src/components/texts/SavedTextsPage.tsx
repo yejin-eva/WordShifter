@@ -82,17 +82,17 @@ export function SavedTextsPage({ onBack, onOpenText }: SavedTextsPageProps) {
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
         >
           ← Back
         </button>
         
-        <h1 className="text-2xl font-semibold text-gray-900">Saved Texts</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Saved Texts</h1>
         
         {texts.length > 0 ? (
           <button
             onClick={handleDeleteAll}
-            className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
             title="Delete all saved texts"
           >
             🗑️ Delete All
@@ -104,11 +104,11 @@ export function SavedTextsPage({ onBack, onOpenText }: SavedTextsPageProps) {
       
       {/* Content */}
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Loading...</div>
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
       ) : texts.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-2">No saved texts yet</p>
-          <p className="text-sm text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400 mb-2">No saved texts yet</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">
             Process a text file to save it here
           </p>
         </div>
@@ -117,14 +117,14 @@ export function SavedTextsPage({ onBack, onOpenText }: SavedTextsPageProps) {
           {texts.map((text) => (
             <div
               key={text.id}
-              className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+              className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all cursor-pointer"
               onClick={() => onOpenText(text.id)}
             >
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-gray-900 truncate">
+                <h3 className="font-medium text-gray-900 dark:text-white truncate">
                   {text.title}
                 </h3>
-                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
                   <span>
                     {getLanguageName(text.sourceLanguage as 'en' | 'ru' | 'ko')} → {getLanguageName(text.targetLanguage as 'en' | 'ru' | 'ko')}
                   </span>

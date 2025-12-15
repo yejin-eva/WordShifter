@@ -46,9 +46,9 @@ export function FileDropZone({
       className={cn(
         'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
         isDragging 
-          ? 'border-primary bg-blue-50' 
-          : 'border-gray-300 hover:border-gray-400',
-        selectedFile && 'border-green-500 bg-green-50'
+          ? 'border-primary bg-blue-50 dark:bg-blue-900/30' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500',
+        selectedFile && 'border-green-500 bg-green-50 dark:bg-green-900/30'
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -65,22 +65,22 @@ export function FileDropZone({
 
       {selectedFile ? (
         <div>
-          <p className="text-green-700 font-medium mb-1">
+          <p className="text-green-700 dark:text-green-400 font-medium mb-1">
             ✓ File selected
           </p>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 dark:text-gray-300 text-sm">
             {selectedFile.name}
           </p>
-          <p className="text-gray-400 text-xs mt-2">
+          <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
             Click to change file
           </p>
         </div>
       ) : (
         <div>
-          <p className="text-gray-600 mb-2">
+          <p className="text-gray-600 dark:text-gray-300 mb-2">
             Drop file here or click to browse
           </p>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 dark:text-gray-500 text-sm">
             Supports: {acceptedFormats.join(', ')}
           </p>
         </div>
