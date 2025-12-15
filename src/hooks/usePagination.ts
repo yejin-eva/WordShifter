@@ -40,23 +40,24 @@ export function usePagination({
   tokens,
   containerHeight,
   containerWidth,
-  lineHeight = 28,  // Slightly smaller line height for better fit
+  lineHeight = 32,  // Generous line height estimate
   fontSize = 18,
-  padding = 80,     // More padding (top + bottom + safety margin)
+  padding = 120,    // Large padding for safety (header, footer, margins)
 }: UsePaginationOptions): UsePaginationReturn {
   const [currentPage, setCurrentPage] = useState(1)
   
-  // Calculate available height for text (be conservative to prevent cutoff)
+  // Calculate available height for text (be very conservative)
   const availableHeight = Math.max(100, containerHeight - padding)
   
   // Calculate characters per line based on container width and font size
-  // Average character width is roughly 0.5-0.6 of font size for proportional fonts
-  const avgCharWidth = fontSize * 0.55
-  const availableWidth = Math.max(200, containerWidth - 48) // More horizontal padding
-  const charsPerLine = Math.max(40, Math.floor(availableWidth / avgCharWidth))
+  // Use conservative estimate: wider characters (like Cyrillic) need more space
+  const avgCharWidth = fontSize * 0.65  // More conservative for non-Latin text
+  const availableWidth = Math.max(200, containerWidth - 64) // More horizontal padding
+  const charsPerLine = Math.max(30, Math.floor(availableWidth / avgCharWidth))
   
-  // Calculate lines per page (subtract 2 for safety margin)
-  const linesPerPage = Math.max(1, Math.floor(availableHeight / lineHeight) - 2)
+  // Calculate lines per page (use 75% of calculated lines for safety)
+  const rawLinesPerPage = Math.floor(availableHeight / lineHeight)
+  const linesPerPage = Math.max(1, Math.floor(rawLinesPerPage * 0.75))
   
   // Build page boundaries based on token positions
   // We'll group tokens into pages based on estimated line usage
