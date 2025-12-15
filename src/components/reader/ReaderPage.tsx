@@ -130,7 +130,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     hasRestoredPosition.current = false
   }, [currentText?.id])
   
-  // Save reading position when page changes (debounced)
+  // Save reading position when page changes (debounced) - PAGE MODE
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'page' || pagination.currentPage === 1) return
@@ -143,6 +143,60 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     
     return () => clearTimeout(saveTimeoutRef.current)
   }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex])
+  
+  // Ref for scroll container
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  
+  // Save reading position on scroll (debounced) - SCROLL MODE
+  useEffect(() => {
+    if (!currentText?.id || displayMode !== 'scroll') return
+    
+    const container = scrollContainerRef.current
+    if (!container) return
+    
+    const handleScroll = () => {
+      clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => {
+        // Find the first visible word by checking element positions
+        const words = container.querySelectorAll('[data-word-index]')
+        const containerTop = container.scrollTop
+        
+        for (const word of words) {
+          const rect = (word as HTMLElement).offsetTop
+          if (rect >= containerTop) {
+            const tokenIndex = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+            if (tokenIndex > 0) {
+              textStorage.updateReadingPosition(currentText.id, tokenIndex)
+            }
+            break
+          }
+        }
+      }, 1000)
+    }
+    
+    container.addEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      clearTimeout(saveTimeoutRef.current)
+    }
+  }, [currentText?.id, displayMode])
+  
+  // Restore scroll position when loading in scroll mode
+  useEffect(() => {
+    if (!currentText?.lastReadTokenIndex || displayMode !== 'scroll' || hasRestoredPosition.current) return
+    
+    const container = scrollContainerRef.current
+    if (!container) return
+    
+    // Wait for content to render, then scroll to saved position
+    setTimeout(() => {
+      const targetWord = container.querySelector(`[data-word-index="${currentText.lastReadTokenIndex}"]`) as HTMLElement
+      if (targetWord) {
+        container.scrollTop = targetWord.offsetTop - 50  // 50px offset from top
+        hasRestoredPosition.current = true
+      }
+    }, 100)
+  }, [currentText?.lastReadTokenIndex, displayMode])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
@@ -459,6 +513,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         
         {/* Scroll mode view - always in DOM */}
         <div 
+          ref={scrollContainerRef}
           className={`flex-1 overflow-auto ${displayMode === 'scroll' ? '' : 'hidden'}`}
         >
           <TextDisplay
