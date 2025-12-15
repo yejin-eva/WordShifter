@@ -3,11 +3,13 @@ import { toast } from 'sonner'
 import { Token } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
 import { TranslationBubble } from './TranslationBubble'
+import { PageNavigator } from './PageNavigator'
 import { useTextStore } from '@/stores/useTextStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useVocabularyStore } from '@/stores/useVocabularyStore'
 import { getTranslationService } from '@/services/translation/translationService'
 import { LanguageCode } from '@/constants/languages'
+import { usePagination } from '@/hooks/usePagination'
 
 interface ReaderPageProps {
   onBack: () => void
@@ -22,10 +24,35 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     selectWord, 
     clearSelection,
     clearPhraseSelection,
+    displayMode,
+    setDisplayMode,
   } = useUIStore()
   
   // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
+  
+  // Container ref for measuring height (pagination)
+  const textContainerRef = useRef<HTMLDivElement>(null)
+  const [containerHeight, setContainerHeight] = useState(500)
+  
+  // Measure container height for pagination
+  useEffect(() => {
+    const updateHeight = () => {
+      if (textContainerRef.current) {
+        setContainerHeight(textContainerRef.current.clientHeight)
+      }
+    }
+    
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+    return () => window.removeEventListener('resize', updateHeight)
+  }, [])
+  
+  // Pagination hook
+  const pagination = usePagination({
+    tokens: currentText?.tokens || [],
+    containerHeight,
+  })
   
   // Get translation service instance (stable)
   const translationService = useMemo(() => getTranslationService(), [])
@@ -283,9 +310,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }
   
   return (
-    <div className="relative">
+    <div className="relative flex flex-col h-full">
       {/* Header bar */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
         <button
           onClick={onBack}
           className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
@@ -297,18 +324,62 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           {currentText.title}
         </h2>
         
-        <div className="text-sm text-gray-500">
-          {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}
+        <div className="flex items-center gap-4">
+          {/* Display mode toggle */}
+          <div className="flex items-center gap-2 text-sm">
+            <button
+              onClick={() => setDisplayMode('scroll')}
+              className={`px-2 py-1 rounded transition-colors ${
+                displayMode === 'scroll' 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              📜 Scroll
+            </button>
+            <button
+              onClick={() => setDisplayMode('page')}
+              className={`px-2 py-1 rounded transition-colors ${
+                displayMode === 'page' 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              📖 Page
+            </button>
+          </div>
+          
+          <div className="text-sm text-gray-500">
+            {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}
+          </div>
         </div>
       </div>
       
       {/* Text content */}
-      <TextDisplay
-        processedText={currentText}
-        onWordClick={handleWordClick}
-        onWordDoubleClick={handleWordDoubleClick}
-        onPhraseClick={handlePhraseClick}
-      />
+      <div 
+        ref={textContainerRef}
+        className={`flex-1 ${displayMode === 'page' ? 'overflow-hidden' : 'overflow-auto'}`}
+      >
+        <TextDisplay
+          processedText={currentText}
+          tokens={displayMode === 'page' ? pagination.pageTokens : undefined}
+          onWordClick={handleWordClick}
+          onWordDoubleClick={handleWordDoubleClick}
+          onPhraseClick={handlePhraseClick}
+        />
+      </div>
+      
+      {/* Page navigation (only in page mode) */}
+      {displayMode === 'page' && (
+        <PageNavigator
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPrevPage={pagination.prevPage}
+          onNextPage={pagination.nextPage}
+          hasPrevPage={pagination.hasPrevPage}
+          hasNextPage={pagination.hasNextPage}
+        />
+      )}
       
       {/* Single word translation bubble */}
       {selectedWord && selectedTranslation && bubblePosition && !phraseTranslation && (

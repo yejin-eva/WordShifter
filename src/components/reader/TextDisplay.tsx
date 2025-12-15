@@ -5,6 +5,7 @@ import { useUIStore } from '@/stores/useUIStore'
 
 interface TextDisplayProps {
   processedText: ProcessedText
+  tokens?: Token[]  // Optional: if provided, renders these tokens instead of all
   onWordClick: (token: Token, element: HTMLSpanElement) => void
   onWordDoubleClick: (token: Token) => void
   onPhraseClick: (tokens: Token[], element: HTMLSpanElement) => void
@@ -12,10 +13,13 @@ interface TextDisplayProps {
 
 export const TextDisplay = memo(function TextDisplay({
   processedText,
+  tokens: tokensProp,
   onWordClick,
   onWordDoubleClick,
   onPhraseClick,
 }: TextDisplayProps) {
+  // Use provided tokens (for pagination) or all tokens
+  const tokensToRender = tokensProp || processedText.tokens
   // Only subscribe to phrase selection
   const phraseSelection = useUIStore(state => state.phraseSelection)
   const selectPhrase = useUIStore(state => state.selectPhrase)
@@ -125,7 +129,7 @@ export const TextDisplay = memo(function TextDisplay({
   // All callbacks are stable (empty deps), so this won't recalculate on click
   const renderedTokens = useMemo(() => {
     console.time('renderTokens')
-    const result = processedText.tokens.map((token) => {
+    const result = tokensToRender.map((token) => {
       if (token.type === 'word') {
         return (
           <WordSpan
@@ -151,7 +155,7 @@ export const TextDisplay = memo(function TextDisplay({
     })
     console.timeEnd('renderTokens')
     return result
-  }, [processedText.tokens]) // ONLY depends on tokens! Callbacks are stable.
+  }, [tokensToRender]) // ONLY depends on tokens! Callbacks are stable.
   
   // Apply phrase selection via CSS classes (avoid re-render)
   useEffect(() => {
