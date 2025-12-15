@@ -85,19 +85,19 @@ export class TranslationService {
     const uniqueWords = Array.from(uniqueWordsMap.entries())
     console.log(`Processing ${uniqueWords.length} unique words (from ${wordTokens.length} total)`)
     
-    // Step 2: Look up each unique word - dictionary first, then LLM
+    // Step 2: Look up each unique word in dictionary (NO LLM - instant!)
     const translationCache = new Map<string, TranslationResult>()
     let dictHits = 0
-    let llmCalls = 0
+    let dictMisses = 0
     
     for (let i = 0; i < uniqueWords.length; i++) {
       const [normalized, token] = uniqueWords[i]
       
-      // Try dictionary first (instant!)
+      // Dictionary lookup only (instant!)
       const dictEntry = dictionaryService.lookup(normalized, pair)
       
       if (dictEntry) {
-        // Dictionary hit - use it
+        // Dictionary hit
         dictHits++
         translationCache.set(normalized, {
           original: token.value,
@@ -105,11 +105,13 @@ export class TranslationService {
           partOfSpeech: dictEntry.pos,
         })
       } else {
-        // Dictionary miss - fall back to LLM
-        llmCalls++
-        const context = getWordContext(tokens, token.index)
-        const result = await this.translateWord(token.value, context, pair)
-        translationCache.set(normalized, result)
+        // Dictionary miss - show "?" (user can click retry for LLM)
+        dictMisses++
+        translationCache.set(normalized, {
+          original: token.value,
+          translation: '?',
+          partOfSpeech: '',
+        })
       }
       
       // Report progress
@@ -119,7 +121,7 @@ export class TranslationService {
       }
     }
     
-    console.log(`Dictionary: ${dictHits} hits, LLM: ${llmCalls} calls`)
+    console.log(`Dictionary: ${dictHits} found, ${dictMisses} unknown (?)`)
     
     // Step 3: Map translations to all word positions
     const processedWords: ProcessedWord[] = wordTokens.map(token => {
