@@ -5,9 +5,7 @@ interface UsePaginationOptions {
   tokens: Token[]
   containerHeight: number
   containerWidth: number
-  lineHeight?: number
-  fontSize?: number
-  padding?: number
+  containerElement?: HTMLElement | null  // For reading actual CSS values
 }
 
 interface UsePaginationReturn {
@@ -40,24 +38,55 @@ export function usePagination({
   tokens,
   containerHeight,
   containerWidth,
-  lineHeight = 32,  // Generous line height estimate
-  fontSize = 18,
-  padding = 120,    // Large padding for safety (header, footer, margins)
+  containerElement,
 }: UsePaginationOptions): UsePaginationReturn {
   const [currentPage, setCurrentPage] = useState(1)
   
-  // Calculate available height for text (be very conservative)
-  const availableHeight = Math.max(100, containerHeight - padding)
+  // Read actual CSS values from the container or use sensible defaults
+  const { lineHeight, fontSize, maxWidth, verticalPadding, horizontalPadding } = useMemo(() => {
+    if (containerElement) {
+      const style = window.getComputedStyle(containerElement)
+      const fs = parseFloat(style.fontSize) || 18
+      const lh = parseFloat(style.lineHeight) || fs * 1.75
+      const mw = style.maxWidth
+      
+      // Read padding values
+      const pt = parseFloat(style.paddingTop) || 0
+      const pb = parseFloat(style.paddingBottom) || 0
+      const pl = parseFloat(style.paddingLeft) || 0
+      const pr = parseFloat(style.paddingRight) || 0
+      
+      // Parse maxWidth (could be "65ch", "800px", or "none")
+      let maxChars = 80
+      if (mw && mw.endsWith('ch')) {
+        maxChars = parseInt(mw, 10)
+      } else if (mw && mw.endsWith('px')) {
+        maxChars = Math.floor(parseInt(mw, 10) / (fs * 0.55))
+      }
+      
+      return { 
+        lineHeight: lh, 
+        fontSize: fs, 
+        maxWidth: maxChars,
+        verticalPadding: pt + pb,
+        horizontalPadding: pl + pr,
+      }
+    }
+    
+    // Defaults if no element
+    return { lineHeight: 32, fontSize: 18, maxWidth: 65, verticalPadding: 32, horizontalPadding: 32 }
+  }, [containerElement])
   
-  // Calculate characters per line based on container width and font size
-  // Use conservative estimate: wider characters (like Cyrillic) need more space
-  const avgCharWidth = fontSize * 0.65  // More conservative for non-Latin text
-  const availableWidth = Math.max(200, containerWidth - 64) // More horizontal padding
-  const charsPerLine = Math.max(30, Math.floor(availableWidth / avgCharWidth))
+  // Calculate available height for text (account for padding + 1 line safety margin)
+  const availableHeight = Math.max(100, containerHeight - verticalPadding - lineHeight)
   
-  // Calculate lines per page (use 75% of calculated lines for safety)
-  const rawLinesPerPage = Math.floor(availableHeight / lineHeight)
-  const linesPerPage = Math.max(1, Math.floor(rawLinesPerPage * 0.75))
+  // Calculate characters per line from container width and maxWidth
+  const avgCharWidth = fontSize * 0.55
+  const charsFromWidth = Math.floor((containerWidth - horizontalPadding) / avgCharWidth)
+  const charsPerLine = Math.min(maxWidth, Math.max(30, charsFromWidth))
+  
+  // Calculate lines per page (subtract 1 for safety margin)
+  const linesPerPage = Math.max(1, Math.floor(availableHeight / lineHeight) - 1)
   
   // Build page boundaries based on token positions
   // We'll group tokens into pages based on estimated line usage

@@ -92,11 +92,25 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [displayMode])
   
+  // Ref for the page mode container (to find text element for CSS reading)
+  const pageContainerRef = useRef<HTMLDivElement | null>(null)
+  
+  // Get the actual text element with reader-text styles
+  const [textElement, setTextElement] = useState<HTMLElement | null>(null)
+  
+  useEffect(() => {
+    if (pageContainerRef.current) {
+      const el = pageContainerRef.current.querySelector('.reader-text') as HTMLElement
+      if (el) setTextElement(el)
+    }
+  }, [currentText]) // Re-query when text changes
+  
   // Pagination hook
   const pagination = usePagination({
     tokens: currentText?.tokens || [],
     containerHeight,
     containerWidth,
+    containerElement: textElement,
   })
   
   // Swipe gesture for page navigation on touch devices
@@ -433,13 +447,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           }}
           className={`flex-1 relative overflow-hidden pb-8 pt-2 ${displayMode === 'page' ? '' : 'hidden'}`}
         >
-        <TextDisplay
-          processedText={currentText}
-          tokens={pagination.pageTokens}
-          onWordClick={handleWordClick}
-          onWordDoubleClick={handleWordDoubleClick}
-          onPhraseClick={handlePhraseClick}
-        />
+        <div ref={pageContainerRef}>
+          <TextDisplay
+            processedText={currentText}
+            tokens={pagination.pageTokens}
+            onWordClick={handleWordClick}
+            onWordDoubleClick={handleWordDoubleClick}
+            onPhraseClick={handlePhraseClick}
+          />
+        </div>
         
         {/* Tap zones for page navigation */}
         <div 
