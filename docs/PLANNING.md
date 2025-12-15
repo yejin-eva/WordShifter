@@ -324,8 +324,51 @@ For each unique word in text:
 | **State Management** | Zustand | Simple, minimal boilerplate |
 | **Local Storage** | IndexedDB (via Dexie.js) | Handles large data (novels), structured queries |
 | **File Parsing** | pdf.js (PDF), epub.js (EPUB) | Industry standard libraries |
-| **Translation (Local)** | Ollama + Llama/Mistral | Free, offline, good quality |
-| **Translation (Cloud)** | OpenAI API (optional) | Higher quality, user provides key |
+| **Dictionary (Primary)** | Wiktionary JSON (kaikki.org) | Fast O(1) lookup, offline, 100% accurate, includes POS |
+| **LLM (Fallback)** | Ollama / OpenAI | For unknown words (retry) and phrase translation |
+
+### Translation Strategy
+
+> **Key Insight**: LLMs are overkill for single-word translation. Dictionaries are faster, cheaper, and more accurate.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    TRANSLATION APPROACH                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   WORD TRANSLATION (99% of use cases)    │   PHRASE TRANSLATION         │
+│   ─────────────────────────────────────  │   ────────────────────────   │
+│   Dictionary lookup (instant, free)      │   LLM (context-aware)        │
+│                                          │                               │
+│   ┌──────────────────────────────────┐   │   User drags to select       │
+│   │ 1. Look up word in dictionary    │   │   multiple words → Click →   │
+│   │    ├─ Found → Show translation   │   │   LLM translates phrase      │
+│   │    └─ Not found → Show "?"       │   │                               │
+│   │                                  │   │   (Future feature)            │
+│   │ 2. User clicks 🔄 retry button   │   │                               │
+│   │    └─ Send to LLM for fallback   │   │                               │
+│   └──────────────────────────────────┘   │                               │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Dictionary Sources (Wiktionary via kaikki.org):**
+- Pre-processed JSON format (no parsing needed)
+- Includes part of speech
+- ~10-20K common words per language pair (~2-5MB bundled)
+- Covers ~95% of typical book vocabulary
+
+**When LLM is Used:**
+1. Unknown word + user clicks retry (🔄)
+2. Phrase/sentence selection (future feature)
+
+**Benefits vs LLM-only approach:**
+| Metric | Dictionary | LLM |
+|--------|-----------|-----|
+| Speed | <1ms | 100-500ms |
+| Accuracy | 100% | ~95% (hallucinations possible) |
+| Cost | Free | API costs or compute |
+| Offline | ✅ Always | Ollama only |
 
 ### Architecture Pattern
 
@@ -338,19 +381,21 @@ For each unique word in text:
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                       SERVICE LAYER                          │
-│  FileParser │ LanguageDetector │ Translator │ VocabManager  │
+│  FileParser │ LanguageDetector │ DictionaryService │        │
+│                                  │ LLMService (fallback)     │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        DATA LAYER                            │
-│  IndexedDB (Dexie) │ LocalStorage (Settings) │ Cache        │
+│  Dictionary JSON │ IndexedDB (Dexie) │ LocalStorage │ Cache │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      EXTERNAL SERVICES                       │
-│  Ollama (Local) │ OpenAI API (Cloud) │ File System          │
+│  Ollama (Local LLM) │ OpenAI API (Cloud LLM) │ File System  │
+│  ↑ Only used for retry/phrase translation                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 

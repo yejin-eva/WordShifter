@@ -482,11 +482,50 @@ interface FileParserService {
   detectFormat(file: File): FileFormat;
 }
 
-// Translation Service
+// Dictionary Service (PRIMARY - for word translation)
+interface DictionaryService {
+  // Look up a word in the bundled dictionary
+  lookup(word: string, pair: LanguagePair): DictionaryEntry | null;
+  
+  // Check if dictionary is loaded for a language pair
+  isLoaded(pair: LanguagePair): boolean;
+  
+  // Load dictionary for a language pair
+  loadDictionary(pair: LanguagePair): Promise<void>;
+}
+
+interface DictionaryEntry {
+  word: string;           // Original word (normalized)
+  translation: string;    // Primary translation
+  translations?: string[]; // Alternative translations
+  pos: string;            // Part of speech
+}
+
+// LLM Service (FALLBACK - for unknown words and phrases)
+interface LLMService {
+  // Translate a word using LLM (called when dictionary lookup fails + user clicks retry)
+  translateWord(word: string, context: string, pair: LanguagePair): Promise<TranslationResult>;
+  
+  // Translate a phrase using LLM (context-aware)
+  translatePhrase(phrase: string, pair: LanguagePair): Promise<TranslationResult>;
+  
+  // Check if LLM is available
+  isAvailable(): Promise<boolean>;
+}
+
+// Combined Translation Service (orchestrates dictionary + LLM)
 interface TranslationService {
-  translateWord(word: string, context: string, pair: LanguagePair): Promise<string>;
-  translatePhrase(phrase: string, pair: LanguagePair): Promise<string>;
-  processText(text: string, pair: LanguagePair, onProgress: (p: number) => void): Promise<ProcessedWord[]>;
+  // Look up word - uses dictionary, returns "?" if not found
+  lookupWord(word: string, pair: LanguagePair): TranslationResult;
+  
+  // Translate word via LLM (fallback for unknown words)
+  translateWordWithLLM(word: string, context: string, pair: LanguagePair): Promise<TranslationResult>;
+  
+  // Translate phrase via LLM
+  translatePhrase(phrase: string, pair: LanguagePair): Promise<TranslationResult>;
+  
+  // Process all words in text using dictionary
+  processText(tokens: Token[], pair: LanguagePair, onProgress: (p: number) => void): ProcessedWord[];
 }
 
 // Language Service
@@ -535,46 +574,91 @@ interface StorageService {
 }
 ```
 
-### Translation Provider Pattern
+### Dictionary Service Implementation
 
 ```typescript
-// Abstract provider interface
-interface TranslationProvider {
+// Dictionary data structure (loaded from JSON files)
+type DictionaryData = Map<string, DictionaryEntry>;
+
+// Dictionary file naming convention
+// public/dictionaries/ru-en.json  (Russian → English)
+// public/dictionaries/en-ru.json  (English → Russian)
+// public/dictionaries/ru-ko.json  (Russian → Korean)
+// etc.
+
+class DictionaryService {
+  private dictionaries = new Map<string, DictionaryData>();
+  
+  async loadDictionary(pair: LanguagePair): Promise<void> {
+    const key = `${pair.source}-${pair.target}`;
+    if (this.dictionaries.has(key)) return;
+    
+    const response = await fetch(`/dictionaries/${key}.json`);
+    const data = await response.json();
+    
+    // Convert array to Map for O(1) lookup
+    const dict = new Map<string, DictionaryEntry>();
+    for (const entry of data) {
+      dict.set(entry.word.toLowerCase(), entry);
+    }
+    
+    this.dictionaries.set(key, dict);
+  }
+  
+  lookup(word: string, pair: LanguagePair): DictionaryEntry | null {
+    const key = `${pair.source}-${pair.target}`;
+    const dict = this.dictionaries.get(key);
+    if (!dict) return null;
+    
+    return dict.get(word.toLowerCase()) || null;
+  }
+}
+
+// Dictionary JSON format (from Wiktionary/kaikki.org)
+// public/dictionaries/ru-en.json:
+[
+  { "word": "книга", "translation": "book", "pos": "noun" },
+  { "word": "читать", "translation": "to read", "pos": "verb" },
+  { "word": "счастливый", "translation": "happy", "pos": "adj" },
+  // ... 10-20K common words
+]
+```
+
+### LLM Provider Pattern (Fallback Only)
+
+```typescript
+// Abstract provider interface (for LLM fallback)
+interface LLMProvider {
   name: string;
   translate(prompt: string): Promise<string>;
   isAvailable(): Promise<boolean>;
 }
 
-// Mock Provider (for development - use this first!)
-class MockProvider implements TranslationProvider {
+// Mock Provider (for development)
+class MockLLMProvider implements LLMProvider {
   name = 'Mock (Development)';
   
   async translate(prompt: string): Promise<string> {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Extract word from prompt and return mock translation
     const wordMatch = prompt.match(/Word: "(.+?)"/);
     const word = wordMatch ? wordMatch[1] : 'unknown';
-    
-    // Return mock format: translation|partOfSpeech
-    return `[${word}]|noun`;  // Always returns [word]|noun for testing
+    return `[${word}]|noun`;
   }
   
   async isAvailable(): Promise<boolean> {
-    return true;  // Always available
+    return true;
   }
 }
 
-// Ollama Provider (for real local testing)
-class OllamaProvider implements TranslationProvider {
+// Ollama Provider (local LLM)
+class OllamaProvider implements LLMProvider {
   name = 'Ollama (Local)';
   
   async translate(prompt: string): Promise<string> {
     const response = await fetch(`${this.endpoint}/api/generate`, {
       method: 'POST',
       body: JSON.stringify({
-        model: 'llama3.2',
+        model: 'qwen2.5:7b',  // or mistral
         prompt: prompt,
         stream: false
       })
@@ -674,14 +758,10 @@ interface SettingsStore {
 
 ### Text Processing Flow
 
-There are two processing modes. User selects at upload time.
-
-#### Full Processing Mode (Default)
-
-Translates ALL words before showing reader. Best for offline reading.
+With dictionary-based translation, processing is now **instant** for most words.
 
 ```
-User drops file → Selects "Full" mode → Clicks "Process"
+User drops file → Clicks "Process"
        │
        ▼
 ┌──────────────────┐
@@ -695,21 +775,26 @@ User drops file → Selects "Full" mode → Clicks "Process"
          │
          ▼
 ┌──────────────────┐
+│ DictionaryService │──→ Load dictionary for language pair (if not loaded)
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
 │ Tokenizer         │──→ Split text into words (preserve punctuation)
 └────────┬─────────┘
          │
          ▼
 ┌──────────────────────────────────────────────────────────┐
-│ TranslationService (batched, with progress callback)      │
+│ TranslationService (dictionary-based, FAST)               │
 │                                                           │
 │  1. Extract unique words (case-insensitive)               │
 │  2. For each unique word:                                 │
-│     a. Check cache (skip if already translated)           │
-│     b. Build context string (±5 surrounding words)        │
-│     c. Call translation provider                          │
-│     d. Parse response: "translation|partOfSpeech"         │
-│     e. Cache result                                       │
-│     f. Update progress (current/total unique words)       │
+│     a. Look up in dictionary (O(1) Map access)            │
+│        ├─ Found → Use translation + POS                   │
+│        └─ Not found → Set translation to "?"              │
+│     b. Map translations to all word instances             │
+│                                                           │
+│  Speed: ~10,000 words/second (vs 1-2 words/sec with LLM)  │
 │                                                           │
 └────────┬─────────────────────────────────────────────────┘
          │
@@ -719,57 +804,17 @@ User drops file → Selects "Full" mode → Clicks "Process"
 └────────┬─────────┘
          │
          ▼
-    Navigate to ReaderPage (all words pre-translated)
+    Navigate to ReaderPage (most words translated, some "?")
 ```
 
-#### Dynamic Processing Mode
+#### Note on Processing Modes
 
-Translates in chunks as user reads. Faster start, but may have brief loading.
+With dictionary-based translation, processing is now **instant** (~10K words/sec).
+The "Dynamic" vs "Full" mode distinction is **no longer necessary** - all words
+are translated immediately via dictionary lookup.
 
-```
-User drops file → Selects "Dynamic" mode → Clicks "Process"
-       │
-       ▼
-┌──────────────────┐
-│ FileParserService │──→ Extract raw text
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ LanguageService   │──→ Detect source language
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Tokenizer         │──→ Split into words, divide into CHUNKS (~500 words each)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────────────────────────────────────────────┐
-│ Translate FIRST CHUNK only                                │
-│ (enough for initial screen + buffer)                      │
-└────────┬─────────────────────────────────────────────────┘
-         │
-         ▼
-    Navigate to ReaderPage immediately
-         │
-         ▼
-┌──────────────────────────────────────────────────────────┐
-│ Background Processing (while user reads)                  │
-│                                                           │
-│  - Monitor scroll/page position                           │
-│  - When user approaches untranslated chunk:               │
-│    → Translate next chunk in background                   │
-│  - Show subtle loading indicator if user catches up       │
-│                                                           │
-└──────────────────────────────────────────────────────────┘
-```
-
-**Dynamic Mode Implementation Notes:**
-- Chunk size: ~500 words (adjustable based on performance)
-- Pre-fetch: Always stay 1 chunk ahead of user's reading position
-- Cache: Already-translated words are reused across chunks
-- Fallback: If user scrolls fast, show loading overlay until chunk is ready
+The only "unknown" words are those not in the dictionary, which display "?" and
+can be translated on-demand via LLM when the user clicks the retry button.
 
 ### Click-to-Translate Flow
 
@@ -785,18 +830,21 @@ useUIStore.selectWord(wordId, position)
        ▼
 TranslationBubble renders
   - Reads translation from currentText.words
+  - Shows: "translation (pos) 💾 🔄" OR "? 💾 🔄"
   - Positions based on click coordinates
        │
-       ▼
-User clicks "Save"
-       │
-       ▼
-useVocabularyStore.saveWord()
-       │
-       ▼
-StorageService saves to IndexedDB
-       │
-       ▼
+       ├────────────────────────────────────────┐
+       │                                        │
+       ▼                                        ▼
+User clicks "💾 Save"                   User clicks "🔄 Retry" (for "?" words)
+       │                                        │
+       ▼                                        ▼
+useVocabularyStore.saveWord()           LLMService.translateWord()
+       │                                        │
+       ▼                                        ▼
+StorageService saves to IndexedDB       Update word in currentText
+       │                                        │
+       ▼                                        ▼
 Toast: "Word saved!"
 ```
 
@@ -804,13 +852,63 @@ Toast: "Word saved!"
 
 ## External Integrations
 
-### Ollama Integration
+### Dictionary Data (Primary Translation Source)
+
+Dictionary files are bundled with the app in `public/dictionaries/`.
+
+**Source: Wiktionary via kaikki.org**
+- URL: https://kaikki.org/dictionary/
+- Format: Pre-processed JSON
+- License: Creative Commons (same as Wiktionary)
+
+**Dictionary Files:**
+```
+public/
+├── dictionaries/
+│   ├── ru-en.json     # Russian → English (~10-20K words, ~2-5MB)
+│   ├── en-ru.json     # English → Russian
+│   ├── ru-ko.json     # Russian → Korean
+│   ├── ko-ru.json     # Korean → Russian
+│   ├── en-ko.json     # English → Korean
+│   └── ko-en.json     # Korean → English
+```
+
+**JSON Format:**
+```json
+[
+  {
+    "word": "книга",
+    "translation": "book",
+    "translations": ["book", "volume", "tome"],
+    "pos": "noun"
+  },
+  {
+    "word": "читать",
+    "translation": "to read",
+    "pos": "verb"
+  }
+]
+```
+
+**Loading Strategy:**
+1. Dictionary loaded lazily when language pair selected
+2. Converted to Map for O(1) lookup
+3. Cached in memory for session duration
+4. ~2-5MB per language pair (acceptable for web)
+
+---
+
+### Ollama Integration (LLM Fallback)
+
+Used ONLY for:
+1. Unknown words (when user clicks 🔄 retry)
+2. Phrase translation (future feature)
 
 ```typescript
 // Configuration
 const OLLAMA_CONFIG = {
   endpoint: 'http://localhost:11434',
-  model: 'llama3.2',        // or 'mistral', 'mixtral'
+  model: 'qwen2.5:7b',      // or 'mistral'
   timeout: 30000,
 };
 
