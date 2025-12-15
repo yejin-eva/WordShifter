@@ -29,6 +29,38 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode,
   } = useUIStore()
   
+  // Loading state for mode transitions (scroll mode with large texts is slow)
+  const [isModeTransitioning, setIsModeTransitioning] = useState(false)
+  
+  // Check if text is very large (scroll mode will be slow)
+  const tokenCount = currentText?.tokens.length || 0
+  const isVeryLargeText = tokenCount > 50000
+  const isLargeText = tokenCount > 10000
+  
+  // Handle mode switch with loading state for large texts
+  const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
+    if (mode === displayMode) return
+    
+    if (mode === 'scroll' && isVeryLargeText) {
+      // Warn user about performance for very large texts
+      if (!confirm(`This text has ${tokenCount.toLocaleString()} tokens. Scroll mode may be slow. Continue?`)) {
+        return
+      }
+    }
+    
+    if (mode === 'scroll' && isLargeText) {
+      // Show loading state for large texts switching to scroll
+      setIsModeTransitioning(true)
+      // Allow UI to update, then switch
+      setTimeout(() => {
+        setDisplayMode(mode)
+        setIsModeTransitioning(false)
+      }, 100)
+    } else {
+      setDisplayMode(mode)
+    }
+  }, [displayMode, isVeryLargeText, isLargeText, tokenCount, setDisplayMode])
+  
   // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
   
@@ -339,22 +371,24 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           {/* Display mode toggle */}
           <div className="flex items-center gap-2 text-sm">
             <button
-              onClick={() => setDisplayMode('scroll')}
+              onClick={() => handleModeSwitch('scroll')}
+              disabled={isModeTransitioning}
               className={`px-2 py-1 rounded transition-colors ${
                 displayMode === 'scroll' 
                   ? 'bg-blue-100 text-blue-700' 
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+              } ${isModeTransitioning ? 'opacity-50' : ''}`}
             >
               📜 Scroll
             </button>
             <button
-              onClick={() => setDisplayMode('page')}
+              onClick={() => handleModeSwitch('page')}
+              disabled={isModeTransitioning}
               className={`px-2 py-1 rounded transition-colors ${
                 displayMode === 'page' 
                   ? 'bg-blue-100 text-blue-700' 
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+              } ${isModeTransitioning ? 'opacity-50' : ''}`}
             >
               📖 Page
             </button>
@@ -375,6 +409,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         }}
         className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden pb-6' : 'overflow-auto'}`}
       >
+        {/* Loading overlay for mode transition */}
+        {isModeTransitioning && (
+          <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+            <div className="text-gray-500">Loading...</div>
+          </div>
+        )}
+        
         <TextDisplay
           processedText={currentText}
           tokens={displayMode === 'page' ? pagination.pageTokens : undefined}

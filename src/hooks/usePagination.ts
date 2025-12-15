@@ -116,11 +116,6 @@ export function usePagination({
     return breaks
   }, [tokens, linesPerPage, charsPerLine])
   
-  // Reset to page 1 when dimensions change significantly
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [linesPerPage, charsPerLine])
-  
   // Calculate total pages
   const totalPages = Math.max(1, pageBreaks.length)
   
