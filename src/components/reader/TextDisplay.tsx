@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, memo } from 'react'
+import { useCallback, useRef, useState, memo, useMemo } from 'react'
 import { ProcessedText, Token } from '@/types/text.types'
 import { WordSpan } from './WordSpan'
 import { useUIStore } from '@/stores/useUIStore'
@@ -16,9 +16,11 @@ export const TextDisplay = memo(function TextDisplay({
   onWordDoubleClick,
   onPhraseClick,
 }: TextDisplayProps) {
-  const { selectedWordIndex, phraseSelection, selectPhrase, clearPhraseSelection } = useUIStore()
+  // Only subscribe to phrase selection, NOT word selection!
+  // Word selection is handled via CSS class manipulation (no re-render)
+  const { phraseSelection, selectPhrase, clearPhraseSelection } = useUIStore()
   
-  // Drag selection state
+  // Drag selection state (local, doesn't affect other components)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<number | null>(null)
   const [dragEnd, setDragEnd] = useState<number | null>(null)
@@ -70,7 +72,6 @@ export const TextDisplay = memo(function TextDisplay({
       const wordIndex = parseInt(wordElement.dataset.wordIndex || '0', 10)
       
       if (wordIndex >= phraseSelection.startIndex && wordIndex <= phraseSelection.endIndex) {
-        // Gather all word tokens in the phrase
         const phraseTokens: Token[] = processedText.tokens.filter(
           t => t.type === 'word' && 
                t.index >= phraseSelection.startIndex && 
@@ -85,32 +86,35 @@ export const TextDisplay = memo(function TextDisplay({
     }
   }, [phraseSelection, processedText.tokens, onPhraseClick])
   
-  const renderToken = useCallback((token: Token) => {
-    if (token.type === 'word') {
-      return (
-        <WordSpan
-          key={token.index}
-          token={token}
-          isSelected={selectedWordIndex === token.index}
-          isInPhraseSelection={isInPhraseSelection(token.index)}
-          onClick={onWordClick}
-          onDoubleClick={onWordDoubleClick}
-          onMouseDown={handleMouseDown}
-          onMouseEnter={handleMouseEnter}
-        />
-      )
-    }
-    
-    if (token.type === 'whitespace') {
-      return (
-        <span key={token.index} className="whitespace-pre">
-          {token.value}
-        </span>
-      )
-    }
-    
-    return <span key={token.index}>{token.value}</span>
-  }, [selectedWordIndex, isInPhraseSelection, onWordClick, onWordDoubleClick, handleMouseDown, handleMouseEnter])
+  // Memoize the rendered tokens - only re-render when tokens or phrase selection changes
+  // Word selection does NOT cause re-render (handled via CSS)
+  const renderedTokens = useMemo(() => {
+    return processedText.tokens.map((token) => {
+      if (token.type === 'word') {
+        return (
+          <WordSpan
+            key={token.index}
+            token={token}
+            isInPhraseSelection={isInPhraseSelection(token.index)}
+            onClick={onWordClick}
+            onDoubleClick={onWordDoubleClick}
+            onMouseDown={handleMouseDown}
+            onMouseEnter={handleMouseEnter}
+          />
+        )
+      }
+      
+      if (token.type === 'whitespace') {
+        return (
+          <span key={token.index} className="whitespace-pre">
+            {token.value}
+          </span>
+        )
+      }
+      
+      return <span key={token.index}>{token.value}</span>
+    })
+  }, [processedText.tokens, isInPhraseSelection, onWordClick, onWordDoubleClick, handleMouseDown, handleMouseEnter])
   
   return (
     <div 
@@ -120,7 +124,7 @@ export const TextDisplay = memo(function TextDisplay({
       onMouseLeave={handleMouseUp}
       onClick={handlePhraseClick}
     >
-      {processedText.tokens.map(renderToken)}
+      {renderedTokens}
     </div>
   )
 })

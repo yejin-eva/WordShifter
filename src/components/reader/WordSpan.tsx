@@ -4,7 +4,6 @@ import { Token } from '@/types/text.types'
 
 interface WordSpanProps {
   token: Token
-  isSelected: boolean
   isInPhraseSelection: boolean
   onClick: (token: Token, element: HTMLSpanElement) => void
   onDoubleClick: (token: Token) => void
@@ -12,9 +11,10 @@ interface WordSpanProps {
   onMouseEnter: (wordIndex: number) => void
 }
 
+// Memoized - only re-renders if props actually change
+// Note: isSelected is handled via CSS class manipulation, NOT props!
 export const WordSpan = memo(function WordSpan({
   token,
-  isSelected,
   isInPhraseSelection,
   onClick,
   onDoubleClick,
@@ -47,7 +47,6 @@ export const WordSpan = memo(function WordSpan({
       ref={spanRef}
       className={cn(
         'word-clickable',
-        isSelected && 'word-selected',
         isInPhraseSelection && 'phrase-selected'
       )}
       onClick={handleClick}

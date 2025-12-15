@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from 'react'
+import { useCallback, useState, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { Token } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
@@ -24,6 +24,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     clearPhraseSelection,
   } = useUIStore()
   
+  // Ref to track currently highlighted element (for CSS class manipulation)
+  const selectedElementRef = useRef<HTMLSpanElement | null>(null)
+  
   // Get translation service instance
   const translationService = useMemo(() => getTranslationService(), [])
   
@@ -42,10 +45,20 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Get translation for selected word
   const selectedTranslation = selectedWord ? getTranslation(selectedWord) : undefined
   
-  // Handle word click - show translation bubble
+  // Handle word click - show translation bubble (O(1) - no re-renders!)
   const handleWordClick = useCallback((token: Token, element: HTMLSpanElement) => {
     setPhraseTranslation(null)
     
+    // Remove highlight from previous element (O(1) DOM operation)
+    if (selectedElementRef.current) {
+      selectedElementRef.current.classList.remove('word-selected')
+    }
+    
+    // Add highlight to new element (O(1) DOM operation)
+    element.classList.add('word-selected')
+    selectedElementRef.current = element
+    
+    // Calculate bubble position
     const rect = element.getBoundingClientRect()
     const viewportHeight = window.innerHeight
     const placement = rect.top > viewportHeight / 2 ? 'above' : 'below'
@@ -55,12 +68,29 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       y: placement === 'above' ? rect.top : rect.bottom,
     }
     
+    // Update store (for bubble data - this is fast, just updates bubble state)
     selectWord(token.index, token.value, position, placement)
   }, [selectWord])
+  
+  // Handle clear selection
+  const handleClearSelection = useCallback(() => {
+    // Remove highlight from element (O(1))
+    if (selectedElementRef.current) {
+      selectedElementRef.current.classList.remove('word-selected')
+      selectedElementRef.current = null
+    }
+    clearSelection()
+  }, [clearSelection])
   
   // Handle phrase click - translate the phrase
   const handlePhraseClick = useCallback(async (tokens: Token[], element: HTMLSpanElement) => {
     if (!currentText || tokens.length < 2) return
+    
+    // Clear word selection
+    if (selectedElementRef.current) {
+      selectedElementRef.current.classList.remove('word-selected')
+      selectedElementRef.current = null
+    }
     
     const phraseText = tokens.map(t => t.value).join(' ')
     
@@ -156,8 +186,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         selectedTranslation.partOfSpeech || 'unknown'
       )
     }
-    clearSelection()
-  }, [selectedWord, selectedTranslation, saveToVocabulary, clearSelection])
+    handleClearSelection()
+  }, [selectedWord, selectedTranslation, saveToVocabulary, handleClearSelection])
   
   // Handle save phrase
   const handleSavePhrase = useCallback(async () => {
@@ -251,7 +281,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           placement={bubblePlacement}
           onSave={handleSaveWord}
           onRetry={handleRetryTranslation}
-          onClose={clearSelection}
+          onClose={handleClearSelection}
           isRetrying={isRetrying}
         />
       )}
