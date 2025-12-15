@@ -13,6 +13,7 @@ interface StorageFormatV3 {
   targetLanguage: string
   createdAt: string
   lastOpenedAt: string
+  lastReadTokenIndex?: number  // Token index of first word on last read page
   
   // Compact tokens: [type, value, index, charStart, charEnd]
   // type: 0=word, 1=punctuation, 2=whitespace
@@ -132,6 +133,7 @@ export const textStorage = {
       targetLanguage: data.targetLanguage as ProcessedText['targetLanguage'],
       createdAt: new Date(data.createdAt),
       lastOpenedAt: new Date(data.lastOpenedAt),
+      lastReadTokenIndex: data.lastReadTokenIndex,
       tokens,
       wordDict,
     }
@@ -189,6 +191,25 @@ export const textStorage = {
    */
   async updateLastOpened(id: string): Promise<void> {
     await db.texts.update(id, { updatedAt: new Date() })
+  },
+  
+  /**
+   * Update reading position (token index of first word on current page)
+   */
+  async updateReadingPosition(id: string, tokenIndex: number): Promise<void> {
+    const stored = await db.texts.get(id)
+    if (!stored) return
+    
+    try {
+      const data = JSON.parse(stored.data)
+      data.lastReadTokenIndex = tokenIndex
+      await db.texts.update(id, { 
+        data: JSON.stringify(data),
+        updatedAt: new Date() 
+      })
+    } catch (error) {
+      console.error('Failed to update reading position:', error)
+    }
   },
   
   /**

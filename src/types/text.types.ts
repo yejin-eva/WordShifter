@@ -48,7 +48,7 @@ export interface ProcessedText {
   wordDict: Record<string, WordTranslation>  // normalized -> translation (UNIQUE ONLY!)
   createdAt: Date
   lastOpenedAt: Date
-  readingPosition?: number      // Last scroll position or page number
+  lastReadTokenIndex?: number   // Token index of first word on last read page
   
   // Legacy field for backwards compatibility with stored texts
   words?: ProcessedWord[]

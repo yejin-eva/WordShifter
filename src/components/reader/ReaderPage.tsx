@@ -11,6 +11,7 @@ import { getTranslationService } from '@/services/translation/translationService
 import { LanguageCode } from '@/constants/languages'
 import { usePagination } from '@/hooks/usePagination'
 import { useSwipeGesture } from '@/hooks/useSwipeGesture'
+import { textStorage } from '@/services/storage/textStorage'
 
 interface ReaderPageProps {
   onBack: () => void
@@ -112,6 +113,36 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     containerWidth,
     containerElement: textElement,
   })
+  
+  // Restore reading position when text loads
+  const hasRestoredPosition = useRef(false)
+  useEffect(() => {
+    if (currentText?.lastReadTokenIndex !== undefined && 
+        pagination.totalPages > 1 && 
+        !hasRestoredPosition.current) {
+      pagination.goToTokenIndex(currentText.lastReadTokenIndex)
+      hasRestoredPosition.current = true
+    }
+  }, [currentText?.lastReadTokenIndex, pagination.totalPages, pagination.goToTokenIndex])
+  
+  // Reset restoration flag when text changes
+  useEffect(() => {
+    hasRestoredPosition.current = false
+  }, [currentText?.id])
+  
+  // Save reading position when page changes (debounced)
+  const saveTimeoutRef = useRef<NodeJS.Timeout>()
+  useEffect(() => {
+    if (!currentText?.id || displayMode !== 'page' || pagination.currentPage === 1) return
+    
+    // Debounce saves to avoid too many writes
+    clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      textStorage.updateReadingPosition(currentText.id, pagination.pageStartIndex)
+    }, 1000)  // Save 1 second after page change
+    
+    return () => clearTimeout(saveTimeoutRef.current)
+  }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({

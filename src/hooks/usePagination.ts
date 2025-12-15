@@ -16,6 +16,7 @@ interface UsePaginationReturn {
   
   // Navigation
   goToPage: (page: number) => void
+  goToTokenIndex: (tokenIndex: number) => void  // Navigate to page containing this token
   nextPage: () => void
   prevPage: () => void
   
@@ -171,6 +172,22 @@ export function usePagination({
     setCurrentPage(validPage)
   }, [totalPages])
   
+  // Find which page contains a given token index and navigate there
+  const goToTokenIndex = useCallback((tokenIndex: number) => {
+    // Find the page that contains this token index
+    for (let i = 0; i < pageBreaks.length; i++) {
+      const pageStart = pageBreaks[i]
+      const pageEnd = pageBreaks[i + 1] || tokens.length
+      
+      if (tokenIndex >= pageStart && tokenIndex < pageEnd) {
+        setCurrentPage(i + 1)  // Pages are 1-indexed
+        return
+      }
+    }
+    // If not found, go to last page
+    setCurrentPage(totalPages)
+  }, [pageBreaks, tokens.length, totalPages])
+  
   const nextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage(p => p + 1)
@@ -188,6 +205,7 @@ export function usePagination({
     totalPages,
     pageTokens,
     goToPage,
+    goToTokenIndex,
     nextPage,
     prevPage,
     hasNextPage: currentPage < totalPages,
