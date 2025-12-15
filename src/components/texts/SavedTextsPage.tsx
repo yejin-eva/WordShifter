@@ -44,6 +44,30 @@ export function SavedTextsPage({ onBack, onOpenText }: SavedTextsPageProps) {
     }
   }
   
+  const handleDeleteAll = async () => {
+    if (texts.length === 0) return
+    
+    // First confirmation
+    if (!confirm(`Delete ALL ${texts.length} saved texts? This cannot be undone.`)) return
+    
+    // Second confirmation for safety
+    if (!confirm(`Are you REALLY sure? All ${texts.length} texts will be permanently deleted.`)) return
+    
+    try {
+      // Delete all texts one by one
+      for (const text of texts) {
+        await textStorage.delete(text.id)
+      }
+      setTexts([])
+      toast.success(`Deleted all ${texts.length} texts`)
+    } catch (error) {
+      console.error('Failed to delete all texts:', error)
+      toast.error('Failed to delete all texts')
+      // Reload to show what's left
+      loadTexts()
+    }
+  }
+  
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -65,7 +89,17 @@ export function SavedTextsPage({ onBack, onOpenText }: SavedTextsPageProps) {
         
         <h1 className="text-2xl font-semibold text-gray-900">Saved Texts</h1>
         
-        <div className="w-16" /> {/* Spacer */}
+        {texts.length > 0 ? (
+          <button
+            onClick={handleDeleteAll}
+            className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+            title="Delete all saved texts"
+          >
+            🗑️ Delete All
+          </button>
+        ) : (
+          <div className="w-24" /> /* Spacer */
+        )}
       </div>
       
       {/* Content */}
