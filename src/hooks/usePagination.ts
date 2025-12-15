@@ -6,6 +6,7 @@ interface UsePaginationOptions {
   containerHeight: number
   containerWidth: number
   containerElement?: HTMLElement | null  // For reading actual CSS values
+  fontSizePx?: number  // Optional: explicit font size to trigger recalculation
 }
 
 interface UsePaginationReturn {
@@ -40,6 +41,7 @@ export function usePagination({
   containerHeight,
   containerWidth,
   containerElement,
+  fontSizePx,
 }: UsePaginationOptions): UsePaginationReturn {
   const [currentPage, setCurrentPage] = useState(1)
   
@@ -47,7 +49,8 @@ export function usePagination({
   const { lineHeight, fontSize, maxWidth, verticalPadding, horizontalPadding } = useMemo(() => {
     if (containerElement) {
       const style = window.getComputedStyle(containerElement)
-      const fs = parseFloat(style.fontSize) || 18
+      // Use explicit fontSizePx if provided (triggers recalc), otherwise read from CSS
+      const fs = fontSizePx || parseFloat(style.fontSize) || 18
       const lh = parseFloat(style.lineHeight) || fs * 1.75
       const mw = style.maxWidth
       
@@ -75,8 +78,8 @@ export function usePagination({
     }
     
     // Defaults if no element
-    return { lineHeight: 32, fontSize: 18, maxWidth: 65, verticalPadding: 32, horizontalPadding: 32 }
-  }, [containerElement])
+    return { lineHeight: fontSizePx ? fontSizePx * 1.75 : 32, fontSize: fontSizePx || 18, maxWidth: 65, verticalPadding: 32, horizontalPadding: 32 }
+  }, [containerElement, fontSizePx])
   
   // Calculate available height for text (account for padding + 1 line safety margin)
   const availableHeight = Math.max(100, containerHeight - verticalPadding - lineHeight)

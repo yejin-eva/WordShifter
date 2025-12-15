@@ -78,7 +78,7 @@ body {
 }
 
 .reader-text {
-  font-size: 1.125rem;
+  font-size: var(--reader-font-size, 1.125rem);
   line-height: 1.75;
   max-width: 65ch;
   margin-left: auto;

@@ -14,6 +14,7 @@ interface StorageFormatV3 {
   createdAt: string
   lastOpenedAt: string
   lastReadTokenIndex?: number  // Token index of first word on last read page
+  fontSize?: number            // Font size in pixels (saved per text)
   
   // Compact tokens: [type, value, index, charStart, charEnd]
   // type: 0=word, 1=punctuation, 2=whitespace
@@ -134,6 +135,7 @@ export const textStorage = {
       createdAt: new Date(data.createdAt),
       lastOpenedAt: new Date(data.lastOpenedAt),
       lastReadTokenIndex: data.lastReadTokenIndex,
+      fontSize: data.fontSize,
       tokens,
       wordDict,
     }
@@ -209,6 +211,25 @@ export const textStorage = {
       })
     } catch (error) {
       console.error('Failed to update reading position:', error)
+    }
+  },
+  
+  /**
+   * Update font size for a text
+   */
+  async updateFontSize(id: string, fontSize: number): Promise<void> {
+    const stored = await db.texts.get(id)
+    if (!stored) return
+    
+    try {
+      const data = JSON.parse(stored.data)
+      data.fontSize = fontSize
+      await db.texts.update(id, { 
+        data: JSON.stringify(data),
+        updatedAt: new Date() 
+      })
+    } catch (error) {
+      console.error('Failed to update font size:', error)
     }
   },
   

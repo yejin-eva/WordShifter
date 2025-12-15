@@ -4,6 +4,7 @@ import { Token } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
 import { TranslationBubble } from './TranslationBubble'
 import { PageNavigator } from './PageNavigator'
+import { FontSizeDropdown } from './FontSizeDropdown'
 import { useTextStore } from '@/stores/useTextStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useVocabularyStore } from '@/stores/useVocabularyStore'
@@ -103,12 +104,25 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [currentText]) // Re-query when text changes
   
+  // Font size state - default to text's saved size or 18px
+  const DEFAULT_FONT_SIZE = 18
+  const [fontSize, setFontSize] = useState(() => currentText?.fontSize ?? DEFAULT_FONT_SIZE)
+  
+  // Handle font size change
+  const handleFontSizeChange = useCallback((newSize: number) => {
+    setFontSize(newSize)
+    if (currentText?.id) {
+      textStorage.updateFontSize(currentText.id, newSize)
+    }
+  }, [currentText?.id])
+  
   // Pagination hook
   const pagination = usePagination({
     tokens: currentText?.tokens || [],
     containerHeight,
     containerWidth,
     containerElement: textElement,
+    fontSizePx: fontSize,
   })
   
   // Restore reading position when text loads
@@ -202,18 +216,22 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [displayMode, pagination.pageStartIndex])
   
-  // Preserve position when page size changes (resize)
+  // Preserve position when page size changes (resize or font change)
   const lastTotalPagesRef = useRef(pagination.totalPages)
+  const lastFontSizeRef = useRef(fontSize)
   useEffect(() => {
-    // Only act if totalPages changed (means resize happened)
-    if (pagination.totalPages !== lastTotalPagesRef.current && displayMode === 'page') {
-      // Navigate to page containing current position
+    const totalPagesChanged = pagination.totalPages !== lastTotalPagesRef.current
+    const fontSizeChanged = fontSize !== lastFontSizeRef.current
+    
+    // Restore position if totalPages or fontSize changed
+    if ((totalPagesChanged || fontSizeChanged) && displayMode === 'page') {
       if (currentTokenPosition > 0) {
         pagination.goToTokenIndex(currentTokenPosition)
       }
       lastTotalPagesRef.current = pagination.totalPages
+      lastFontSizeRef.current = fontSize
     }
-  }, [pagination.totalPages, displayMode, currentTokenPosition, pagination.goToTokenIndex])
+  }, [pagination.totalPages, fontSize, displayMode, currentTokenPosition, pagination.goToTokenIndex])
   
   // Update position when scrolling
   useEffect(() => {
@@ -578,6 +596,12 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           <div className="text-sm text-gray-500">
             {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}
           </div>
+          
+          {/* Font size control */}
+          <FontSizeDropdown
+            fontSize={fontSize}
+            onChange={handleFontSizeChange}
+          />
         </div>
       </div>
       
@@ -590,6 +614,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         <div 
           ref={scrollContainerRef}
           className={`flex-1 overflow-auto ${displayMode === 'scroll' ? '' : 'hidden'}`}
+          style={{ '--reader-font-size': `${fontSize}px` } as React.CSSProperties}
         >
           <TextDisplay
             processedText={currentText}
@@ -607,6 +632,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
             ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
           }}
           className={`flex-1 relative overflow-hidden pb-8 pt-2 ${displayMode === 'page' ? '' : 'hidden'}`}
+          style={{ '--reader-font-size': `${fontSize}px` } as React.CSSProperties}
         >
         <div ref={pageContainerRef}>
           <TextDisplay

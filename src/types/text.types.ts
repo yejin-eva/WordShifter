@@ -49,6 +49,7 @@ export interface ProcessedText {
   createdAt: Date
   lastOpenedAt: Date
   lastReadTokenIndex?: number   // Token index of first word on last read page
+  fontSize?: number             // Font size in pixels (saved per text)
   
   // Legacy field for backwards compatibility with stored texts
   words?: ProcessedWord[]
