@@ -23,14 +23,6 @@ describe('UploadPage', () => {
     expect(screen.getByText('Target Language')).toBeInTheDocument()
   })
 
-  it('renders processing mode toggle', () => {
-    render(<UploadPage onProcess={() => {}} />)
-    
-    expect(screen.getByText('Processing Mode')).toBeInTheDocument()
-    expect(screen.getByText('Full')).toBeInTheDocument()
-    expect(screen.getByText('Dynamic')).toBeInTheDocument()
-  })
-
   it('disables process button when no file selected', () => {
     render(<UploadPage onProcess={() => {}} />)
     
@@ -88,8 +80,7 @@ describe('UploadPage', () => {
     expect(mockOnProcess).toHaveBeenCalledWith(
       mockFile,
       'ru',  // auto-detected source (Cyrillic)
-      'en',  // selected target
-      'dynamic'  // default processing mode
+      'en'   // selected target
     )
   })
 })

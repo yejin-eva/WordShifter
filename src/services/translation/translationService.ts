@@ -1,6 +1,6 @@
 import { TranslationProvider, TranslationResult, LanguagePair, TranslationConfig, DEFAULT_TRANSLATION_CONFIG } from '@/types/translation.types'
 import { Token, ProcessedWord } from '@/types/text.types'
-import { extractWords, getWordContext } from '@/services/language/tokenizer'
+import { extractWords } from '@/services/language/tokenizer'
 import { dictionaryService } from '@/services/dictionary'
 import { MockProvider } from './mockProvider'
 import { OllamaProvider } from './ollamaProvider'

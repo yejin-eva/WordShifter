@@ -7,7 +7,6 @@ import { VocabularyPage } from './components/vocabulary/VocabularyPage'
 import { SavedTextsPage } from './components/texts/SavedTextsPage'
 import { useTextStore } from './stores/useTextStore'
 import { LanguageCode } from './constants/languages'
-import { ProcessingMode } from './types/processing.types'
 
 type Page = 'home' | 'vocabulary' | 'reader' | 'saved'
 
@@ -18,10 +17,9 @@ function App() {
   const handleProcess = async (
     file: File, 
     sourceLanguage: LanguageCode, 
-    targetLanguage: LanguageCode, 
-    mode: ProcessingMode
+    targetLanguage: LanguageCode
   ) => {
-    await processFile(file, sourceLanguage, targetLanguage, mode)
+    await processFile(file, sourceLanguage, targetLanguage)
   }
 
   const handleBack = () => {

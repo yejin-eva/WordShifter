@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
 import { FileDropZone } from './FileDropZone'
 import { LanguageSelector } from './LanguageSelector'
-import { ProcessingModeToggle } from './ProcessingModeToggle'
 import { TextPreview } from './TextPreview'
 import { LanguageCode } from '@/constants/languages'
-import { ProcessingMode } from '@/types/processing.types'
 import { parseFile, SUPPORTED_EXTENSIONS } from '@/services/fileParser'
 import { detectLanguageFromSample } from '@/services/language/languageDetector'
 
 interface UploadPageProps {
-  onProcess: (file: File, sourceLanguage: LanguageCode, targetLanguage: LanguageCode, mode: ProcessingMode) => void
+  onProcess: (file: File, sourceLanguage: LanguageCode, targetLanguage: LanguageCode) => void
 }
 
 export function UploadPage({ onProcess }: UploadPageProps) {
@@ -17,7 +15,6 @@ export function UploadPage({ onProcess }: UploadPageProps) {
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [sourceLanguage, setSourceLanguage] = useState<LanguageCode | null>(null)
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode | null>(null)
-  const [processingMode, setProcessingMode] = useState<ProcessingMode>('dynamic')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,7 +57,7 @@ export function UploadPage({ onProcess }: UploadPageProps) {
 
   const handleProcess = () => {
     if (canProcess) {
-      onProcess(selectedFile, sourceLanguage, targetLanguage, processingMode)
+      onProcess(selectedFile, sourceLanguage, targetLanguage)
     }
   }
 
@@ -100,10 +97,6 @@ export function UploadPage({ onProcess }: UploadPageProps) {
             sourceLanguage={sourceLanguage}
           />
 
-          <ProcessingModeToggle
-            value={processingMode}
-            onChange={setProcessingMode}
-          />
         </div>
       </div>
 

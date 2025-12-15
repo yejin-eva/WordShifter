@@ -14,7 +14,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getWordById, updateWord, backgroundProgress } = useTextStore()
+  const { currentText, getWordById, updateWord } = useTextStore()
   const { 
     selectedWordId, 
     bubblePosition, 
@@ -42,11 +42,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Get the selected word for the bubble
   const selectedWord = selectedWordId ? getWordById(selectedWordId) : undefined
   
-  // State for dynamic translation loading
+  // State for retry translation loading
   const [isTranslatingWord, setIsTranslatingWord] = useState(false)
   
-  // Handle word click - show translation bubble (with dynamic translation if needed)
-  const handleWordClick = useCallback(async (word: ProcessedWord, element: HTMLSpanElement) => {
+  // Handle word click - show translation bubble
+  const handleWordClick = useCallback((word: ProcessedWord, element: HTMLSpanElement) => {
     // Clear phrase translation when clicking a single word
     setPhraseTranslation(null)
     
@@ -62,35 +62,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       y: placement === 'above' ? rect.top : rect.bottom,
     }
     
-    // Select the word first (shows bubble immediately)
+    // Show bubble with translation (or "?" if not in dictionary)
     selectWord(word.id, position, placement)
-    
-    // Check FRESH word state from store (background may have translated it)
-    const freshWord = getWordById(word.id)
-    const needsTranslation = freshWord && !freshWord.translation && currentText
-    
-    // If word has no translation yet (dynamic mode), translate now
-    if (needsTranslation) {
-      setIsTranslatingWord(true)
-      try {
-        const result = await translationService.translateWord(
-          word.original,
-          currentText.originalContent.substring(0, 200), // Context
-          { 
-            source: currentText.sourceLanguage as LanguageCode, 
-            target: currentText.targetLanguage as LanguageCode 
-          }
-        )
-        // Update word with translation
-        updateWord(word.id, result.translation, result.partOfSpeech)
-      } catch (error) {
-        console.error('Dynamic translation failed:', error)
-        updateWord(word.id, '(translation failed)', 'unknown')
-      } finally {
-        setIsTranslatingWord(false)
-      }
-    }
-  }, [selectWord, currentText, translationService, updateWord, getWordById])
+  }, [selectWord])
   
   // Handle phrase click - translate the phrase
   const handlePhraseClick = useCallback(async (words: ProcessedWord[], element: HTMLSpanElement) => {
@@ -260,23 +234,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           ← Back
         </button>
         
-        <div className="text-center">
-          <h2 className="text-lg font-medium text-gray-900">
-            {currentText.title}
-          </h2>
-          {/* Background translation progress */}
-          {backgroundProgress < 100 && (
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-24 h-1 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${backgroundProgress}%` }}
-                />
-              </div>
-              <span className="text-xs text-gray-400">Preparing...</span>
-            </div>
-          )}
-        </div>
+        <h2 className="text-lg font-medium text-gray-900">
+          {currentText.title}
+        </h2>
         
         <div className="text-sm text-gray-500">
           {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}

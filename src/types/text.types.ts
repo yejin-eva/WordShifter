@@ -38,7 +38,7 @@ export interface ProcessedText {
   createdAt: Date
   lastOpenedAt: Date
   readingPosition?: number      // Last scroll position or page number
-  processingMode: 'full' | 'dynamic'
+  processingMode?: 'full'       // Always full (instant with dictionary)
 }
 
 /**
