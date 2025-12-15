@@ -21,22 +21,29 @@ export const TextDisplay = memo(function TextDisplay({
   const selectPhrase = useUIStore(state => state.selectPhrase)
   const clearPhraseSelection = useUIStore(state => state.clearPhraseSelection)
   
-  // Drag selection state
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState<number | null>(null)
-  const [dragEnd, setDragEnd] = useState<number | null>(null)
+  // Drag selection state - stored in refs to avoid re-renders
+  const isDraggingRef = useRef(false)
+  const dragStartRef = useRef<number | null>(null)
+  const dragEndRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   
-  // Store callbacks in refs for stable handlers
+  // For phrase selection UI update during drag
+  const [, forceUpdate] = useState(0)
+  
+  // Store all callbacks in refs for stable handlers
   const onWordClickRef = useRef(onWordClick)
   const onWordDoubleClickRef = useRef(onWordDoubleClick)
   const onPhraseClickRef = useRef(onPhraseClick)
+  const selectPhraseRef = useRef(selectPhrase)
+  const clearPhraseSelectionRef = useRef(clearPhraseSelection)
   
   useEffect(() => { onWordClickRef.current = onWordClick }, [onWordClick])
   useEffect(() => { onWordDoubleClickRef.current = onWordDoubleClick }, [onWordDoubleClick])
   useEffect(() => { onPhraseClickRef.current = onPhraseClick }, [onPhraseClick])
+  useEffect(() => { selectPhraseRef.current = selectPhrase }, [selectPhrase])
+  useEffect(() => { clearPhraseSelectionRef.current = clearPhraseSelection }, [clearPhraseSelection])
   
-  // STABLE click handler - uses refs
+  // ALL handlers use refs - completely stable!
   const stableOnWordClick = useCallback((token: Token, element: HTMLSpanElement) => {
     onWordClickRef.current(token, element)
   }, [])
@@ -45,60 +52,65 @@ export const TextDisplay = memo(function TextDisplay({
     onWordDoubleClickRef.current(token)
   }, [])
   
-  // Phrase selection check - only depends on phrase state
-  const isInPhraseSelection = useCallback((index: number) => {
-    if (isDragging && dragStart !== null && dragEnd !== null) {
-      const start = Math.min(dragStart, dragEnd)
-      const end = Math.max(dragStart, dragEnd)
-      return index >= start && index <= end
-    }
-    if (!phraseSelection) return false
-    return index >= phraseSelection.startIndex && index <= phraseSelection.endIndex
-  }, [phraseSelection, isDragging, dragStart, dragEnd])
+  const stableOnMouseDown = useCallback((wordIndex: number) => {
+    isDraggingRef.current = true
+    dragStartRef.current = wordIndex
+    dragEndRef.current = wordIndex
+    clearPhraseSelectionRef.current()
+  }, [])
   
-  const handleMouseDown = useCallback((wordIndex: number) => {
-    setIsDragging(true)
-    setDragStart(wordIndex)
-    setDragEnd(wordIndex)
-    clearPhraseSelection()
-  }, [clearPhraseSelection])
-  
-  const handleMouseEnter = useCallback((wordIndex: number) => {
-    if (isDragging) {
-      setDragEnd(wordIndex)
-    }
-  }, [isDragging])
-  
-  const handleMouseUp = useCallback(() => {
-    if (isDragging && dragStart !== null && dragEnd !== null) {
-      const start = Math.min(dragStart, dragEnd)
-      const end = Math.max(dragStart, dragEnd)
-      
-      if (start !== end) {
-        selectPhrase(start, end)
+  const stableOnMouseEnter = useCallback((wordIndex: number) => {
+    if (isDraggingRef.current) {
+      dragEndRef.current = wordIndex
+      // Update phrase highlight during drag
+      if (containerRef.current && dragStartRef.current !== null) {
+        // Remove old drag selection
+        containerRef.current.querySelectorAll('.phrase-selected').forEach(el => {
+          el.classList.remove('phrase-selected')
+        })
+        // Add new drag selection
+        const start = Math.min(dragStartRef.current, wordIndex)
+        const end = Math.max(dragStartRef.current, wordIndex)
+        for (let i = start; i <= end; i++) {
+          const el = containerRef.current.querySelector(`[data-word-index="${i}"]`)
+          if (el) el.classList.add('phrase-selected')
+        }
       }
     }
-    setIsDragging(false)
-    setDragStart(null)
-    setDragEnd(null)
-  }, [isDragging, dragStart, dragEnd, selectPhrase])
+  }, [])
+  
+  const handleMouseUp = useCallback(() => {
+    if (isDraggingRef.current && dragStartRef.current !== null && dragEndRef.current !== null) {
+      const start = Math.min(dragStartRef.current, dragEndRef.current)
+      const end = Math.max(dragStartRef.current, dragEndRef.current)
+      
+      if (start !== end) {
+        selectPhraseRef.current(start, end)
+      }
+    }
+    isDraggingRef.current = false
+    dragStartRef.current = null
+    dragEndRef.current = null
+  }, [])
   
   // Store processedText in ref for phrase click handler
   const processedTextRef = useRef(processedText)
   useEffect(() => { processedTextRef.current = processedText }, [processedText])
   
+  const phraseSelectionRef = useRef(phraseSelection)
+  useEffect(() => { phraseSelectionRef.current = phraseSelection }, [phraseSelection])
+  
   const handlePhraseClick = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement
     const wordElement = target.closest('.word-clickable') as HTMLSpanElement
+    const ps = phraseSelectionRef.current
     
-    if (wordElement && phraseSelection) {
+    if (wordElement && ps) {
       const wordIndex = parseInt(wordElement.dataset.wordIndex || '0', 10)
       
-      if (wordIndex >= phraseSelection.startIndex && wordIndex <= phraseSelection.endIndex) {
+      if (wordIndex >= ps.startIndex && wordIndex <= ps.endIndex) {
         const phraseTokens: Token[] = processedTextRef.current.tokens.filter(
-          t => t.type === 'word' && 
-               t.index >= phraseSelection.startIndex && 
-               t.index <= phraseSelection.endIndex
+          t => t.type === 'word' && t.index >= ps.startIndex && t.index <= ps.endIndex
         )
         
         if (phraseTokens.length > 1) {
@@ -107,10 +119,10 @@ export const TextDisplay = memo(function TextDisplay({
         }
       }
     }
-  }, [phraseSelection])
+  }, [])
   
-  // Render tokens ONCE - only recalculate when tokens actually change
-  // The callbacks are stable, so they won't cause recalculation
+  // Render tokens ONCE - only recalculate when tokens change!
+  // All callbacks are stable (empty deps), so this won't recalculate on click
   const renderedTokens = useMemo(() => {
     console.time('renderTokens')
     const result = processedText.tokens.map((token) => {
@@ -119,11 +131,10 @@ export const TextDisplay = memo(function TextDisplay({
           <WordSpan
             key={token.index}
             token={token}
-            isInPhraseSelection={false} // Will be updated via CSS for phrase selection
             onClick={stableOnWordClick}
             onDoubleClick={stableOnWordDoubleClick}
-            onMouseDown={handleMouseDown}
-            onMouseEnter={handleMouseEnter}
+            onMouseDown={stableOnMouseDown}
+            onMouseEnter={stableOnMouseEnter}
           />
         )
       }
@@ -140,7 +151,7 @@ export const TextDisplay = memo(function TextDisplay({
     })
     console.timeEnd('renderTokens')
     return result
-  }, [processedText.tokens, stableOnWordClick, stableOnWordDoubleClick, handleMouseDown, handleMouseEnter])
+  }, [processedText.tokens]) // ONLY depends on tokens! Callbacks are stable.
   
   // Apply phrase selection via CSS classes (avoid re-render)
   useEffect(() => {

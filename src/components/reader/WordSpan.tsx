@@ -1,4 +1,4 @@
-import { useCallback, useRef, memo } from 'react'
+import { useRef, memo } from 'react'
 import { Token } from '@/types/text.types'
 
 interface WordSpanProps {
@@ -9,8 +9,8 @@ interface WordSpanProps {
   onMouseEnter: (wordIndex: number) => void
 }
 
-// Heavily memoized - only re-renders if token changes
-// Selection states (word & phrase) are handled via CSS class manipulation
+// Heavily memoized with custom comparison - only re-renders if token.index changes
+// Since callbacks are stable (from refs), we can ignore them in comparison
 export const WordSpan = memo(function WordSpan({
   token,
   onClick,
@@ -20,24 +20,37 @@ export const WordSpan = memo(function WordSpan({
 }: WordSpanProps) {
   const spanRef = useRef<HTMLSpanElement>(null)
   
-  const handleClick = useCallback(() => {
+  // Store callbacks in refs to avoid creating new functions
+  const onClickRef = useRef(onClick)
+  const onDoubleClickRef = useRef(onDoubleClick)
+  const onMouseDownRef = useRef(onMouseDown)
+  const onMouseEnterRef = useRef(onMouseEnter)
+  
+  // Update refs (they're stable, so this rarely runs)
+  onClickRef.current = onClick
+  onDoubleClickRef.current = onDoubleClick
+  onMouseDownRef.current = onMouseDown
+  onMouseEnterRef.current = onMouseEnter
+  
+  // Event handlers - inline since they just call refs
+  const handleClick = () => {
     if (spanRef.current) {
-      onClick(token, spanRef.current)
+      onClickRef.current(token, spanRef.current)
     }
-  }, [token, onClick])
+  }
   
-  const handleDoubleClick = useCallback(() => {
-    onDoubleClick(token)
-  }, [token, onDoubleClick])
+  const handleDoubleClick = () => {
+    onDoubleClickRef.current(token)
+  }
   
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
-    onMouseDown(token.index)
-  }, [token.index, onMouseDown])
+    onMouseDownRef.current(token.index)
+  }
   
-  const handleMouseEnter = useCallback(() => {
-    onMouseEnter(token.index)
-  }, [token.index, onMouseEnter])
+  const handleMouseEnter = () => {
+    onMouseEnterRef.current(token.index)
+  }
   
   return (
     <span
@@ -52,4 +65,9 @@ export const WordSpan = memo(function WordSpan({
       {token.value}
     </span>
   )
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if the token itself changes
+  // Callbacks are stable (from refs in parent), so ignore them
+  return prevProps.token.index === nextProps.token.index &&
+         prevProps.token.value === nextProps.token.value
 })
