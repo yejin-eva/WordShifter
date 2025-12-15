@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo, useRef } from 'react'
+import { useCallback, useState, useMemo, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Token } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
@@ -24,10 +24,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     clearPhraseSelection,
   } = useUIStore()
   
-  // Ref to track currently highlighted element (for CSS class manipulation)
+  // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
   
-  // Get translation service instance
+  // Get translation service instance (stable)
   const translationService = useMemo(() => getTranslationService(), [])
   
   // Retry state
@@ -45,16 +45,28 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Get translation for selected word
   const selectedTranslation = selectedWord ? getTranslation(selectedWord) : undefined
   
-  // Handle word click - show translation bubble (O(1) - no re-renders!)
+  // ============================================
+  // STABLE CALLBACKS using refs pattern
+  // These don't change identity on re-render!
+  // ============================================
+  
+  // Store the latest selectWord in a ref so callback doesn't need it as dependency
+  const selectWordRef = useRef(selectWord)
+  useEffect(() => { selectWordRef.current = selectWord }, [selectWord])
+  
+  const setPhraseTranslationRef = useRef(setPhraseTranslation)
+  useEffect(() => { setPhraseTranslationRef.current = setPhraseTranslation }, [])
+  
+  // STABLE word click handler - never changes identity!
   const handleWordClick = useCallback((token: Token, element: HTMLSpanElement) => {
-    setPhraseTranslation(null)
+    setPhraseTranslationRef.current(null)
     
-    // Remove highlight from previous element (O(1) DOM operation)
+    // Remove highlight from previous element (O(1))
     if (selectedElementRef.current) {
       selectedElementRef.current.classList.remove('word-selected')
     }
     
-    // Add highlight to new element (O(1) DOM operation)
+    // Add highlight to new element (O(1))
     element.classList.add('word-selected')
     selectedElementRef.current = element
     
@@ -68,23 +80,53 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       y: placement === 'above' ? rect.top : rect.bottom,
     }
     
-    // Update store (for bubble data - this is fast, just updates bubble state)
-    selectWord(token.index, token.value, position, placement)
-  }, [selectWord])
+    // Update store for bubble
+    selectWordRef.current(token.index, token.value, position, placement)
+  }, []) // Empty deps = stable identity!
   
-  // Handle clear selection
-  const handleClearSelection = useCallback(() => {
-    // Remove highlight from element (O(1))
-    if (selectedElementRef.current) {
-      selectedElementRef.current.classList.remove('word-selected')
-      selectedElementRef.current = null
+  // Store refs for double-click handler dependencies
+  const getTranslationRef = useRef(getTranslation)
+  useEffect(() => { getTranslationRef.current = getTranslation }, [getTranslation])
+  
+  const currentTextRef = useRef(currentText)
+  useEffect(() => { currentTextRef.current = currentText }, [currentText])
+  
+  const saveWordRef = useRef(useVocabularyStore.getState().saveWord)
+  useEffect(() => {
+    saveWordRef.current = useVocabularyStore.getState().saveWord
+  }, [])
+  
+  // STABLE double-click handler
+  const handleWordDoubleClick = useCallback(async (token: Token) => {
+    const translation = getTranslationRef.current(token.value)
+    const text = currentTextRef.current
+    if (translation && text) {
+      const saved = await saveWordRef.current({
+        original: token.value,
+        translation: translation.translation,
+        partOfSpeech: translation.partOfSpeech || 'unknown',
+        sourceLanguage: text.sourceLanguage as LanguageCode,
+        targetLanguage: text.targetLanguage as LanguageCode,
+        textId: text.id,
+        textTitle: text.title,
+        isPhrase: false,
+      })
+      if (saved) {
+        toast.success(`Saved "${token.value}"`, { description: `→ ${translation.translation}` })
+      } else {
+        toast.info(`"${token.value}" already saved`)
+      }
     }
-    clearSelection()
-  }, [clearSelection])
+  }, []) // Empty deps = stable identity!
   
-  // Handle phrase click - translate the phrase
+  // Store ref for phrase translation dependencies
+  const translationServiceRef = useRef(translationService)
+  useEffect(() => { translationServiceRef.current = translationService }, [translationService])
+  
+  // STABLE phrase click handler
   const handlePhraseClick = useCallback(async (tokens: Token[], element: HTMLSpanElement) => {
-    if (!currentText || tokens.length < 2) return
+    const text = currentTextRef.current
+    if (!text || tokens.length < 2) return
     
     // Clear word selection
     if (selectedElementRef.current) {
@@ -103,7 +145,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     
     setIsTranslatingPhrase(true)
-    setPhraseTranslation({
+    setPhraseTranslationRef.current({
       text: phraseText,
       translation: 'Translating...',
       position,
@@ -111,12 +153,12 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     })
     
     try {
-      const result = await translationService.translatePhrase(
+      const result = await translationServiceRef.current.translatePhrase(
         phraseText,
-        { source: currentText.sourceLanguage, target: currentText.targetLanguage }
+        { source: text.sourceLanguage, target: text.targetLanguage }
       )
       
-      setPhraseTranslation({
+      setPhraseTranslationRef.current({
         text: phraseText,
         translation: result.translation,
         position,
@@ -124,7 +166,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       })
     } catch (error) {
       console.error('Phrase translation failed:', error)
-      setPhraseTranslation({
+      setPhraseTranslationRef.current({
         text: phraseText,
         translation: '(translation failed)',
         position,
@@ -133,7 +175,19 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     } finally {
       setIsTranslatingPhrase(false)
     }
-  }, [currentText, translationService])
+  }, []) // Empty deps = stable identity!
+  
+  // ============================================
+  // Non-stable callbacks (these are fine, not passed to TextDisplay)
+  // ============================================
+  
+  const handleClearSelection = useCallback(() => {
+    if (selectedElementRef.current) {
+      selectedElementRef.current.classList.remove('word-selected')
+      selectedElementRef.current = null
+    }
+    clearSelection()
+  }, [clearSelection])
   
   const { saveWord } = useVocabularyStore()
   
@@ -165,19 +219,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     return saved
   }, [currentText, saveWord])
   
-  // Handle double-click - save to vocabulary
-  const handleWordDoubleClick = useCallback(async (token: Token) => {
-    const translation = getTranslation(token.value)
-    if (translation) {
-      await saveToVocabulary(
-        token.value, 
-        translation.translation, 
-        translation.partOfSpeech || 'unknown'
-      )
-    }
-  }, [getTranslation, saveToVocabulary])
-  
-  // Handle save from bubble
   const handleSaveWord = useCallback(async () => {
     if (selectedWord && selectedTranslation) {
       await saveToVocabulary(
@@ -189,7 +230,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     handleClearSelection()
   }, [selectedWord, selectedTranslation, saveToVocabulary, handleClearSelection])
   
-  // Handle save phrase
   const handleSavePhrase = useCallback(async () => {
     if (phraseTranslation) {
       await saveToVocabulary(phraseTranslation.text, phraseTranslation.translation, 'phrase', true)
@@ -203,7 +243,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     clearPhraseSelection()
   }, [clearPhraseSelection])
   
-  // Handle retry translation using LLM
   const handleRetryTranslation = useCallback(async () => {
     if (!selectedWord || !currentText) return
     
@@ -219,7 +258,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         }
       )
       
-      // Update in wordDict (affects ALL occurrences of this word!)
       updateTranslation(selectedWord.toLowerCase(), result.translation, result.partOfSpeech)
       toast.success('Translation updated!')
     } catch (error) {

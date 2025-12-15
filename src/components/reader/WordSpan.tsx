@@ -1,21 +1,18 @@
 import { useCallback, useRef, memo } from 'react'
-import { cn } from '@/utils/cn'
 import { Token } from '@/types/text.types'
 
 interface WordSpanProps {
   token: Token
-  isInPhraseSelection: boolean
   onClick: (token: Token, element: HTMLSpanElement) => void
   onDoubleClick: (token: Token) => void
   onMouseDown: (wordIndex: number) => void
   onMouseEnter: (wordIndex: number) => void
 }
 
-// Memoized - only re-renders if props actually change
-// Note: isSelected is handled via CSS class manipulation, NOT props!
+// Heavily memoized - only re-renders if token changes
+// Selection states (word & phrase) are handled via CSS class manipulation
 export const WordSpan = memo(function WordSpan({
   token,
-  isInPhraseSelection,
   onClick,
   onDoubleClick,
   onMouseDown,
@@ -45,10 +42,7 @@ export const WordSpan = memo(function WordSpan({
   return (
     <span
       ref={spanRef}
-      className={cn(
-        'word-clickable',
-        isInPhraseSelection && 'phrase-selected'
-      )}
+      className="word-clickable"
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onMouseDown={handleMouseDown}
