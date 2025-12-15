@@ -22,7 +22,7 @@ export const PageNavigator = memo(function PageNavigator({
   hasNextPage,
 }: PageNavigatorProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200">
+    <div className="flex items-center justify-between px-4 py-4 bg-gray-50 border-t border-gray-200 mt-4 rounded-t-lg">
       {/* Previous button */}
       <button
         onClick={onPrevPage}

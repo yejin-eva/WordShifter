@@ -370,7 +370,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           textContainerRef.current = el
           ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
         }}
-        className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden' : 'overflow-auto'}`}
+        className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden pb-6' : 'overflow-auto'}`}
       >
         <TextDisplay
           processedText={currentText}

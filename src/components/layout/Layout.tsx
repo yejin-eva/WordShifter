@@ -8,9 +8,9 @@ interface LayoutProps {
 
 export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-screen flex flex-col bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
+      <header className="border-b border-gray-200 bg-white flex-shrink-0">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => onNavigate?.('home')}
@@ -45,9 +45,11 @@ export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutPro
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        {children}
+      {/* Main Content - flex-1 to fill remaining height */}
+      <main className="flex-1 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 py-8 h-full flex flex-col">
+          {children}
+        </div>
       </main>
     </div>
   )
