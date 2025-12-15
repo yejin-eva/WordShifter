@@ -115,20 +115,6 @@ export function usePagination({
   // Calculate total pages
   const totalPages = Math.max(1, pageBreaks.length)
   
-  // Debug logging
-  useEffect(() => {
-    console.log('Pagination debug:', {
-      containerHeight,
-      availableHeight,
-      linesPerPage,
-      totalTokens: tokens.length,
-      totalPages,
-      currentPage,
-      pageBreaks: pageBreaks.slice(0, 10), // First 10 breaks
-      pageTokensCount: tokens.slice(pageBreaks[currentPage - 1] || 0, pageBreaks[currentPage] || tokens.length).length,
-    })
-  }, [containerHeight, availableHeight, linesPerPage, tokens.length, totalPages, currentPage, pageBreaks])
-  
   // Ensure current page is valid
   useEffect(() => {
     if (currentPage > totalPages) {
