@@ -40,23 +40,23 @@ export function usePagination({
   tokens,
   containerHeight,
   containerWidth,
-  lineHeight = 32,  // 2rem default
+  lineHeight = 28,  // Slightly smaller line height for better fit
   fontSize = 18,
-  padding = 48,     // Top + bottom padding
+  padding = 80,     // More padding (top + bottom + safety margin)
 }: UsePaginationOptions): UsePaginationReturn {
   const [currentPage, setCurrentPage] = useState(1)
   
-  // Calculate available height for text
-  const availableHeight = containerHeight - padding
+  // Calculate available height for text (be conservative to prevent cutoff)
+  const availableHeight = Math.max(100, containerHeight - padding)
   
   // Calculate characters per line based on container width and font size
   // Average character width is roughly 0.5-0.6 of font size for proportional fonts
   const avgCharWidth = fontSize * 0.55
-  const availableWidth = containerWidth - 32 // Account for padding
+  const availableWidth = Math.max(200, containerWidth - 48) // More horizontal padding
   const charsPerLine = Math.max(40, Math.floor(availableWidth / avgCharWidth))
   
-  // Calculate lines per page
-  const linesPerPage = Math.max(1, Math.floor(availableHeight / lineHeight))
+  // Calculate lines per page (subtract 2 for safety margin)
+  const linesPerPage = Math.max(1, Math.floor(availableHeight / lineHeight) - 2)
   
   // Build page boundaries based on token positions
   // We'll group tokens into pages based on estimated line usage

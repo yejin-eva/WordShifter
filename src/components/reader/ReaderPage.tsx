@@ -29,16 +29,24 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode,
   } = useUIStore()
   
-  // Handle mode switch - use startTransition to keep UI responsive
+  // Check if text is too large for scroll mode
+  const tokenCount = currentText?.tokens.length || 0
+  const isVeryLargeText = tokenCount > 30000  // ~15K words
+  
+  // Handle mode switch
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
     
-    // Use startTransition to make the update non-blocking
-    // This allows React to keep the UI responsive during large re-renders
+    // For very large texts, warn about scroll mode or block it
+    if (mode === 'scroll' && isVeryLargeText) {
+      toast.error(`This text is too large for scroll mode (${Math.round(tokenCount / 2000)}K words). Please use Page mode.`)
+      return
+    }
+    
     startTransition(() => {
       setDisplayMode(mode)
     })
-  }, [displayMode, setDisplayMode])
+  }, [displayMode, setDisplayMode, isVeryLargeText, tokenCount])
   
   // Ref to track currently highlighted element
   const selectedElementRef = useRef<HTMLSpanElement | null>(null)
@@ -384,7 +392,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           textContainerRef.current = el
           ;(swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
         }}
-        className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden pb-6' : 'overflow-auto'}`}
+        className={`flex-1 relative ${displayMode === 'page' ? 'overflow-hidden pb-8 pt-2' : 'overflow-auto'}`}
       >
         <TextDisplay
           processedText={currentText}
