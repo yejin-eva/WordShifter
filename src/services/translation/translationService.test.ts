@@ -44,21 +44,20 @@ describe('TranslationService', () => {
     expect(result.translation).toBe('[hello world]')
   })
 
-  it('processes tokens and returns ProcessedWord array with ? for unknown words', async () => {
+  it('processes tokens and returns word dictionary with ? for unknown words', async () => {
     const service = new TranslationService({ provider: 'mock' })
     const tokens = tokenize('Hello world')
     
     // Dictionary not loaded, so all words show "?"
-    const processedWords = await service.processTokens(tokens, {
+    const wordDict = await service.processTokens(tokens, {
       source: 'en',
       target: 'ru',
     })
     
-    expect(processedWords).toHaveLength(2)
-    expect(processedWords[0].original).toBe('Hello')
-    expect(processedWords[0].translation).toBe('?')  // Unknown word
-    expect(processedWords[1].original).toBe('world')
-    expect(processedWords[1].translation).toBe('?')  // Unknown word
+    // Returns a dictionary of unique words, not an array
+    expect(Object.keys(wordDict)).toHaveLength(2)
+    expect(wordDict['hello'].translation).toBe('?')  // Unknown word
+    expect(wordDict['world'].translation).toBe('?')  // Unknown word
   })
 
   it('does not call LLM during processTokens (dictionary only)', async () => {
@@ -84,7 +83,9 @@ describe('TranslationService', () => {
       (progress) => progressValues.push(progress)
     )
     
-    expect(progressValues).toEqual([25, 50, 75, 100])
+    // Progress reports at start/end and periodically (every 100 words)
+    // For small texts, just check we get 100% at the end
+    expect(progressValues[progressValues.length - 1]).toBe(100)
   })
 
   it('mock provider is always available', async () => {

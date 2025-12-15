@@ -12,20 +12,31 @@ export interface Token {
 }
 
 /**
- * A word with its translation information
+ * Translation info for a unique word (stored once per unique word)
+ */
+export interface WordTranslation {
+  translation: string
+  partOfSpeech?: string
+}
+
+/**
+ * A word instance in the text (for backwards compatibility with existing code)
+ * This is computed on-the-fly from token + wordDict, not stored
  */
 export interface ProcessedWord {
-  id: string                    // Unique ID for this word instance
-  index: number                 // Position in text
-  original: string              // Original word
-  normalized: string            // Lowercase, trimmed (for caching)
-  translation: string           // Translated word
-  partOfSpeech?: string         // noun, verb, adj, etc.
-  context?: string              // Surrounding words for context
+  id: string                    // Computed: `word-${token.index}`
+  index: number                 // Position in text (from token)
+  original: string              // Original word (from token.value)
+  normalized: string            // Lowercase (computed)
+  translation: string           // From wordDict lookup
+  partOfSpeech?: string         // From wordDict lookup
 }
 
 /**
  * A fully processed text ready for reading
+ * 
+ * Key optimization: wordDict stores UNIQUE words only (~15K for a novel)
+ * instead of storing every word instance (~200K for a novel)
  */
 export interface ProcessedText {
   id: string                    // UUID
@@ -34,11 +45,13 @@ export interface ProcessedText {
   sourceLanguage: LanguageCode  // Detected source language
   targetLanguage: LanguageCode  // User-selected target
   tokens: Token[]               // All tokens (words + punctuation + whitespace)
-  words: ProcessedWord[]        // Only the words with translations
+  wordDict: Record<string, WordTranslation>  // normalized -> translation (UNIQUE ONLY!)
   createdAt: Date
   lastOpenedAt: Date
   readingPosition?: number      // Last scroll position or page number
-  processingMode?: 'full'       // Always full (instant with dictionary)
+  
+  // Legacy field for backwards compatibility with stored texts
+  words?: ProcessedWord[]
 }
 
 /**

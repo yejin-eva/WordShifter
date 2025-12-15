@@ -1,19 +1,19 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, memo } from 'react'
 import { cn } from '@/utils/cn'
-import { ProcessedWord } from '@/types/text.types'
+import { Token } from '@/types/text.types'
 
 interface WordSpanProps {
-  word: ProcessedWord
+  token: Token
   isSelected: boolean
   isInPhraseSelection: boolean
-  onClick: (word: ProcessedWord, element: HTMLSpanElement) => void
-  onDoubleClick: (word: ProcessedWord) => void
+  onClick: (token: Token, element: HTMLSpanElement) => void
+  onDoubleClick: (token: Token) => void
   onMouseDown: (wordIndex: number) => void
   onMouseEnter: (wordIndex: number) => void
 }
 
-export function WordSpan({
-  word,
+export const WordSpan = memo(function WordSpan({
+  token,
   isSelected,
   isInPhraseSelection,
   onClick,
@@ -25,22 +25,22 @@ export function WordSpan({
   
   const handleClick = useCallback(() => {
     if (spanRef.current) {
-      onClick(word, spanRef.current)
+      onClick(token, spanRef.current)
     }
-  }, [word, onClick])
+  }, [token, onClick])
   
   const handleDoubleClick = useCallback(() => {
-    onDoubleClick(word)
-  }, [word, onDoubleClick])
+    onDoubleClick(token)
+  }, [token, onDoubleClick])
   
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault() // Prevent text selection
-    onMouseDown(word.index)
-  }, [word.index, onMouseDown])
+    e.preventDefault()
+    onMouseDown(token.index)
+  }, [token.index, onMouseDown])
   
   const handleMouseEnter = useCallback(() => {
-    onMouseEnter(word.index)
-  }, [word.index, onMouseEnter])
+    onMouseEnter(token.index)
+  }, [token.index, onMouseEnter])
   
   return (
     <span
@@ -54,11 +54,9 @@ export function WordSpan({
       onDoubleClick={handleDoubleClick}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
-      data-word-id={word.id}
-      data-word-index={word.index}
+      data-word-index={token.index}
     >
-      {word.original}
+      {token.value}
     </span>
   )
-}
-
+})

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ProcessedText, ProcessingState, Token, ProcessedWord } from '@/types/text.types'
+import { ProcessedText, ProcessingState, Token, WordTranslation } from '@/types/text.types'
 import { LanguageCode } from '@/constants/languages'
 import { parseFile } from '@/services/fileParser'
 import { tokenize } from '@/services/language/tokenizer'
@@ -9,9 +9,6 @@ import { textStorage } from '@/services/storage/textStorage'
 interface TextStore {
   // Current text being read
   currentText: ProcessedText | null
-  
-  // Word index for O(1) lookup by ID
-  wordIndex: Map<string, ProcessedWord>
   
   // Processing state
   processing: ProcessingState
@@ -26,11 +23,11 @@ interface TextStore {
   setCurrentText: (text: ProcessedText | null) => void
   clearCurrentText: () => void
   
-  // Get a word by its ID (O(1) lookup)
-  getWordById: (wordId: string) => ProcessedWord | undefined
+  // Get translation for a word (O(1) lookup by normalized key)
+  getTranslation: (word: string) => WordTranslation | undefined
   
-  // Update a word's translation
-  updateWord: (wordId: string, translation: string, partOfSpeech: string) => void
+  // Update a word's translation in the dictionary
+  updateTranslation: (normalized: string, translation: string, partOfSpeech: string) => void
   
   // Load a saved text
   loadSavedText: (id: string) => Promise<boolean>
@@ -42,18 +39,8 @@ const initialProcessingState: ProcessingState = {
   currentStep: '',
 }
 
-// Build word index for O(1) lookup
-function buildWordIndex(words: ProcessedWord[]): Map<string, ProcessedWord> {
-  const index = new Map<string, ProcessedWord>()
-  for (const word of words) {
-    index.set(word.id, word)
-  }
-  return index
-}
-
 export const useTextStore = create<TextStore>((set, get) => ({
   currentText: null,
-  wordIndex: new Map(),
   processing: initialProcessingState,
   
   processFile: async (file, sourceLanguage, targetLanguage) => {
@@ -82,7 +69,7 @@ export const useTextStore = create<TextStore>((set, get) => ({
       
       const tokens: Token[] = tokenize(content)
       
-      // Step 3: Load dictionary and translate (instant with dictionary!)
+      // Step 3: Load dictionary and build word dict (instant!)
       set({
         processing: {
           status: 'translating',
@@ -102,7 +89,8 @@ export const useTextStore = create<TextStore>((set, get) => ({
         },
       })
       
-      const processedWords = await translationService.processTokens(
+      // Returns ONLY unique words (~15K for novel, not ~200K!)
+      const wordDict = await translationService.processTokens(
         tokens,
         pair,
         (progress) => {
@@ -117,23 +105,21 @@ export const useTextStore = create<TextStore>((set, get) => ({
         }
       )
       
-      // Step 4: Create processed text
+      // Step 4: Create processed text (lightweight - only stores unique words!)
       const processedText: ProcessedText = {
         id: crypto.randomUUID(),
-        title: file.name.replace(/\.[^/.]+$/, ''),  // Remove extension
+        title: file.name.replace(/\.[^/.]+$/, ''),
         originalContent: content,
         sourceLanguage,
         targetLanguage,
         tokens,
-        words: processedWords,
+        wordDict,  // Only unique words!
         createdAt: new Date(),
         lastOpenedAt: new Date(),
-        processingMode: 'full',  // Always full (instant with dictionary)
       }
       
       set({
         currentText: processedText,
-        wordIndex: buildWordIndex(processedText.words),  // Build index for O(1) lookup
         processing: {
           status: 'complete',
           progress: 100,
@@ -159,40 +145,31 @@ export const useTextStore = create<TextStore>((set, get) => ({
     }
   },
   
-  setCurrentText: (text) => set({ 
-    currentText: text,
-    wordIndex: text ? buildWordIndex(text.words) : new Map(),
-  }),
+  setCurrentText: (text) => set({ currentText: text }),
   
   clearCurrentText: () => set({ 
     currentText: null,
-    wordIndex: new Map(),
     processing: initialProcessingState 
   }),
   
-  getWordById: (wordId) => {
-    // O(1) lookup using index!
-    return get().wordIndex.get(wordId)
+  getTranslation: (word) => {
+    const { currentText } = get()
+    if (!currentText) return undefined
+    return currentText.wordDict[word.toLowerCase()]
   },
   
-  updateWord: (wordId, translation, partOfSpeech) => {
-    const { currentText, wordIndex } = get()
+  updateTranslation: (normalized, translation, partOfSpeech) => {
+    const { currentText } = get()
     if (!currentText) return
     
-    const updatedWord = { ...wordIndex.get(wordId)!, translation, partOfSpeech }
-    
-    // Update in array
-    const updatedWords = currentText.words.map(word =>
-      word.id === wordId ? updatedWord : word
-    )
-    
-    // Update in index (O(1))
-    const newIndex = new Map(wordIndex)
-    newIndex.set(wordId, updatedWord)
+    // Update wordDict (immutable)
+    const updatedWordDict = {
+      ...currentText.wordDict,
+      [normalized]: { translation, partOfSpeech }
+    }
     
     set({
-      currentText: { ...currentText, words: updatedWords },
-      wordIndex: newIndex,
+      currentText: { ...currentText, wordDict: updatedWordDict }
     })
   },
   
@@ -225,7 +202,6 @@ export const useTextStore = create<TextStore>((set, get) => ({
       
       set({
         currentText: savedText,
-        wordIndex: buildWordIndex(savedText.words),
         processing: {
           status: 'complete',
           progress: 100,
@@ -247,4 +223,3 @@ export const useTextStore = create<TextStore>((set, get) => ({
     }
   },
 }))
-

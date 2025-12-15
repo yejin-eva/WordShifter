@@ -1,29 +1,25 @@
 import { db, StoredText } from './database'
-import { ProcessedText, ProcessedWord, Token } from '@/types/text.types'
+import { ProcessedText, Token, WordTranslation } from '@/types/text.types'
 
 /**
- * Optimized storage format - uses word dictionary for deduplication
+ * Optimized storage format v3 - stores wordDict directly (already deduplicated!)
  */
-interface OptimizedTextData {
-  version: 2  // Version for migration support
+interface StorageFormatV3 {
+  version: 3
   id: string
   title: string
   originalContent: string
   sourceLanguage: string
   targetLanguage: string
-  processingMode: 'full' | 'dynamic'
   createdAt: string
   lastOpenedAt: string
   
-  // Compact token format: [type, value, index, charStart, charEnd]
+  // Compact tokens: [type, value, index, charStart, charEnd]
   // type: 0=word, 1=punctuation, 2=whitespace
   tokens: Array<[number, string, number, number, number]>
   
-  // Dictionary: normalized -> [translation, partOfSpeech]
-  dictionary: Record<string, [string, string]>
-  
-  // Word positions: [index, normalized] - references dictionary
-  wordRefs: Array<[number, string]>
+  // Word dictionary: normalized -> [translation, partOfSpeech]
+  wordDict: Record<string, [string, string]>
 }
 
 /**
@@ -31,60 +27,54 @@ interface OptimizedTextData {
  */
 export const textStorage = {
   /**
-   * Save a processed text with deduplication
+   * Save a processed text
    */
   async save(text: ProcessedText): Promise<void> {
-    // Build translation dictionary (deduplicated)
-    const dictionary: Record<string, [string, string]> = {}
-    const wordRefs: Array<[number, string]> = []
-    
-    for (const word of text.words) {
-      const key = word.normalized
-      // Only store first translation for each normalized word
-      if (!dictionary[key]) {
-        dictionary[key] = [word.translation, word.partOfSpeech || '']
-      }
-      wordRefs.push([word.index, key])
-    }
-    
-    // Compact tokens: [type, value, index, charStart, charEnd]
+    // Compact tokens
     const typeMap = { word: 0, punctuation: 1, whitespace: 2 }
     const compactTokens: Array<[number, string, number, number, number]> = 
       text.tokens.map(t => [typeMap[t.type], t.value, t.index, t.charStart, t.charEnd])
     
-    const optimizedData: OptimizedTextData = {
-      version: 2,
+    // Compact wordDict: [translation, pos] tuples
+    const compactWordDict: Record<string, [string, string]> = {}
+    for (const [key, val] of Object.entries(text.wordDict)) {
+      compactWordDict[key] = [val.translation, val.partOfSpeech || '']
+    }
+    
+    const storageData: StorageFormatV3 = {
+      version: 3,
       id: text.id,
       title: text.title,
       originalContent: text.originalContent,
       sourceLanguage: text.sourceLanguage,
       targetLanguage: text.targetLanguage,
-      processingMode: text.processingMode,
       createdAt: text.createdAt.toISOString(),
       lastOpenedAt: text.lastOpenedAt.toISOString(),
       tokens: compactTokens,
-      dictionary,
-      wordRefs,
+      wordDict: compactWordDict,
     }
+    
+    // Count words in tokens for metadata
+    const wordCount = text.tokens.filter(t => t.type === 'word').length
     
     const storedText: StoredText = {
       id: text.id,
       title: text.title,
       sourceLanguage: text.sourceLanguage,
       targetLanguage: text.targetLanguage,
-      wordCount: text.words.length,
+      wordCount,
       createdAt: text.createdAt,
       updatedAt: new Date(),
-      data: JSON.stringify(optimizedData),
+      data: JSON.stringify(storageData),
     }
     
-    console.log(`Saving text: ${text.words.length} words → ${Object.keys(dictionary).length} unique (${Math.round(Object.keys(dictionary).length / text.words.length * 100)}%)`)
+    console.log(`Saving: ${wordCount} word tokens, ${Object.keys(text.wordDict).length} unique translations`)
     
     await db.texts.put(storedText)
   },
   
   /**
-   * Get all saved texts (metadata only, not full data)
+   * Get all saved texts (metadata only)
    */
   async getAll(): Promise<StoredText[]> {
     return db.texts.orderBy('updatedAt').reverse().toArray()
@@ -100,16 +90,14 @@ export const textStorage = {
     try {
       const parsed = JSON.parse(stored.data)
       
-      // Check if it's the new optimized format (version 2)
-      if (parsed.version === 2) {
-        return this.reconstructFromOptimized(parsed as OptimizedTextData)
+      // Version 3 format (current)
+      if (parsed.version === 3) {
+        return this.reconstructV3(parsed as StorageFormatV3)
       }
       
-      // Legacy format (version 1) - direct ProcessedText
-      const legacy = parsed as ProcessedText
-      legacy.createdAt = new Date(legacy.createdAt)
-      legacy.lastOpenedAt = new Date(legacy.lastOpenedAt || legacy.createdAt)
-      return legacy
+      // Legacy formats - reconstruct as best we can
+      console.warn('Loading legacy format, will be upgraded on next save')
+      return this.reconstructLegacy(parsed)
     } catch (error) {
       console.error('Failed to parse saved text:', error)
       return null
@@ -117,11 +105,11 @@ export const textStorage = {
   },
   
   /**
-   * Reconstruct ProcessedText from optimized storage format
+   * Reconstruct from v3 format
    */
-  reconstructFromOptimized(data: OptimizedTextData): ProcessedText {
-    // Reconstruct tokens
+  reconstructV3(data: StorageFormatV3): ProcessedText {
     const typeNames: Array<'word' | 'punctuation' | 'whitespace'> = ['word', 'punctuation', 'whitespace']
+    
     const tokens: Token[] = data.tokens.map(([type, value, index, charStart, charEnd]) => ({
       type: typeNames[type],
       value,
@@ -130,20 +118,11 @@ export const textStorage = {
       charEnd,
     }))
     
-    // Reconstruct words from dictionary + refs
-    const words: ProcessedWord[] = data.wordRefs.map(([index, normalized]) => {
-      const [translation, partOfSpeech] = data.dictionary[normalized] || ['', '']
-      // Find the original value from tokens
-      const token = tokens.find(t => t.index === index)
-      return {
-        id: crypto.randomUUID(),
-        index,
-        original: token?.value || normalized,
-        normalized,
-        translation,
-        partOfSpeech,
-      }
-    })
+    // Expand wordDict from tuples
+    const wordDict: Record<string, WordTranslation> = {}
+    for (const [key, [translation, partOfSpeech]] of Object.entries(data.wordDict)) {
+      wordDict[key] = { translation, partOfSpeech }
+    }
     
     return {
       id: data.id,
@@ -151,11 +130,57 @@ export const textStorage = {
       originalContent: data.originalContent,
       sourceLanguage: data.sourceLanguage as ProcessedText['sourceLanguage'],
       targetLanguage: data.targetLanguage as ProcessedText['targetLanguage'],
-      processingMode: data.processingMode,
       createdAt: new Date(data.createdAt),
       lastOpenedAt: new Date(data.lastOpenedAt),
       tokens,
-      words,
+      wordDict,
+    }
+  },
+  
+  /**
+   * Reconstruct from legacy formats (v1/v2)
+   */
+  reconstructLegacy(data: any): ProcessedText {
+    // Try to extract what we can
+    const tokens: Token[] = data.tokens?.map((t: any) => {
+      if (Array.isArray(t)) {
+        // v2 compact format
+        const typeNames: Array<'word' | 'punctuation' | 'whitespace'> = ['word', 'punctuation', 'whitespace']
+        return { type: typeNames[t[0]], value: t[1], index: t[2], charStart: t[3], charEnd: t[4] }
+      }
+      return t
+    }) || []
+    
+    // Build wordDict from legacy words array or dictionary
+    const wordDict: Record<string, WordTranslation> = {}
+    
+    if (data.words) {
+      for (const word of data.words) {
+        const key = word.normalized || word.original?.toLowerCase()
+        if (key && !wordDict[key]) {
+          wordDict[key] = { 
+            translation: word.translation || '?', 
+            partOfSpeech: word.partOfSpeech || '' 
+          }
+        }
+      }
+    } else if (data.dictionary) {
+      for (const [key, val] of Object.entries(data.dictionary)) {
+        const [translation, pos] = val as [string, string]
+        wordDict[key] = { translation, partOfSpeech: pos }
+      }
+    }
+    
+    return {
+      id: data.id,
+      title: data.title,
+      originalContent: data.originalContent,
+      sourceLanguage: data.sourceLanguage,
+      targetLanguage: data.targetLanguage,
+      createdAt: new Date(data.createdAt),
+      lastOpenedAt: new Date(data.lastOpenedAt || data.createdAt),
+      tokens,
+      wordDict,
     }
   },
   
@@ -163,20 +188,7 @@ export const textStorage = {
    * Update last opened time
    */
   async updateLastOpened(id: string): Promise<void> {
-    const stored = await db.texts.get(id)
-    if (!stored) return
-    
-    try {
-      const parsed = JSON.parse(stored.data) as ProcessedText
-      parsed.lastOpenedAt = new Date()
-      
-      await db.texts.update(id, {
-        updatedAt: new Date(),
-        data: JSON.stringify(parsed),
-      })
-    } catch (error) {
-      console.error('Failed to update last opened:', error)
-    }
+    await db.texts.update(id, { updatedAt: new Date() })
   },
   
   /**
@@ -187,7 +199,7 @@ export const textStorage = {
   },
   
   /**
-   * Check if a text is already saved
+   * Check if a text exists
    */
   async exists(id: string): Promise<boolean> {
     const count = await db.texts.where('id').equals(id).count()
@@ -208,4 +220,3 @@ export const textStorage = {
     await db.texts.clear()
   },
 }
-

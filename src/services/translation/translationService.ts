@@ -1,5 +1,5 @@
 import { TranslationProvider, TranslationResult, LanguagePair, TranslationConfig, DEFAULT_TRANSLATION_CONFIG } from '@/types/translation.types'
-import { Token, ProcessedWord } from '@/types/text.types'
+import { Token, WordTranslation } from '@/types/text.types'
 import { extractWords } from '@/services/language/tokenizer'
 import { dictionaryService } from '@/services/dictionary'
 import { MockProvider } from './mockProvider'
@@ -62,83 +62,60 @@ export class TranslationService {
   
   /**
    * Process all words in a token array
-   * Returns ProcessedWord array with translations
+   * Returns a dictionary of unique words with translations (NOT an array!)
    * 
-   * Uses dictionary first (instant), falls back to LLM if not found
+   * Key optimization: Only stores ~15K unique words for a novel
+   * instead of ~200K word instances
    */
   async processTokens(
     tokens: Token[],
     pair: LanguagePair,
     onProgress?: (progress: number) => void
-  ): Promise<ProcessedWord[]> {
+  ): Promise<Record<string, WordTranslation>> {
     const wordTokens = extractWords(tokens)
     
-    // Step 1: Extract unique normalized words
-    const uniqueWordsMap = new Map<string, Token>()
+    // Extract unique normalized words
+    const uniqueWords = new Set<string>()
     for (const token of wordTokens) {
-      const normalized = token.value.toLowerCase()
-      if (!uniqueWordsMap.has(normalized)) {
-        uniqueWordsMap.set(normalized, token)
-      }
+      uniqueWords.add(token.value.toLowerCase())
     }
     
-    const uniqueWords = Array.from(uniqueWordsMap.entries())
-    console.log(`Processing ${uniqueWords.length} unique words (from ${wordTokens.length} total)`)
+    const uniqueList = Array.from(uniqueWords)
+    console.log(`Processing ${uniqueList.length} unique words (from ${wordTokens.length} total)`)
     
-    // Step 2: Look up each unique word in dictionary (NO LLM - instant!)
-    const translationCache = new Map<string, TranslationResult>()
+    // Look up each unique word in dictionary (instant!)
+    const wordDict: Record<string, WordTranslation> = {}
     let dictHits = 0
     let dictMisses = 0
     
-    for (let i = 0; i < uniqueWords.length; i++) {
-      const [normalized, token] = uniqueWords[i]
-      
-      // Dictionary lookup only (instant!)
+    for (let i = 0; i < uniqueList.length; i++) {
+      const normalized = uniqueList[i]
       const dictEntry = dictionaryService.lookup(normalized, pair)
       
       if (dictEntry) {
-        // Dictionary hit
         dictHits++
-        translationCache.set(normalized, {
-          original: token.value,
+        wordDict[normalized] = {
           translation: dictEntry.translation,
           partOfSpeech: dictEntry.pos,
-        })
+        }
       } else {
-        // Dictionary miss - show "?" (user can click retry for LLM)
         dictMisses++
-        translationCache.set(normalized, {
-          original: token.value,
+        wordDict[normalized] = {
           translation: '?',
           partOfSpeech: '',
-        })
+        }
       }
       
-      // Report progress
-      if (onProgress) {
-        const progress = Math.round(((i + 1) / uniqueWords.length) * 100)
+      // Report progress (less frequently for large texts)
+      if (onProgress && (i % 100 === 0 || i === uniqueList.length - 1)) {
+        const progress = Math.round(((i + 1) / uniqueList.length) * 100)
         onProgress(progress)
       }
     }
     
     console.log(`Dictionary: ${dictHits} found, ${dictMisses} unknown (?)`)
     
-    // Step 3: Map translations to all word positions
-    const processedWords: ProcessedWord[] = wordTokens.map(token => {
-      const normalized = token.value.toLowerCase()
-      const result = translationCache.get(normalized)!
-      
-      return {
-        id: `word-${token.index}`,
-        index: token.index,
-        original: token.value,
-        normalized,
-        translation: result.translation,
-        partOfSpeech: result.partOfSpeech,
-      }
-    })
-    
-    return processedWords
+    return wordDict
   }
   
   private createProvider(): TranslationProvider {

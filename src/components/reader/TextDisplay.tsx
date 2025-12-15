@@ -1,22 +1,22 @@
-import { useCallback, useRef, useState } from 'react'
-import { ProcessedText, ProcessedWord, Token } from '@/types/text.types'
+import { useCallback, useRef, useState, memo } from 'react'
+import { ProcessedText, Token } from '@/types/text.types'
 import { WordSpan } from './WordSpan'
 import { useUIStore } from '@/stores/useUIStore'
 
 interface TextDisplayProps {
   processedText: ProcessedText
-  onWordClick: (word: ProcessedWord, element: HTMLSpanElement) => void
-  onWordDoubleClick: (word: ProcessedWord) => void
-  onPhraseClick: (words: ProcessedWord[], element: HTMLSpanElement) => void
+  onWordClick: (token: Token, element: HTMLSpanElement) => void
+  onWordDoubleClick: (token: Token) => void
+  onPhraseClick: (tokens: Token[], element: HTMLSpanElement) => void
 }
 
-export function TextDisplay({
+export const TextDisplay = memo(function TextDisplay({
   processedText,
   onWordClick,
   onWordDoubleClick,
   onPhraseClick,
 }: TextDisplayProps) {
-  const { selectedWordId, phraseSelection, selectPhrase, clearPhraseSelection } = useUIStore()
+  const { selectedWordIndex, phraseSelection, selectPhrase, clearPhraseSelection } = useUIStore()
   
   // Drag selection state
   const [isDragging, setIsDragging] = useState(false)
@@ -24,26 +24,17 @@ export function TextDisplay({
   const [dragEnd, setDragEnd] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   
-  // Build a map of word index to ProcessedWord for quick lookup
-  const wordMap = new Map<number, ProcessedWord>()
-  processedText.words.forEach(word => {
-    wordMap.set(word.index, word)
-  })
-  
-  // Check if a word index is in the phrase selection (either committed or during drag)
+  // Check if a word index is in the phrase selection
   const isInPhraseSelection = useCallback((index: number) => {
-    // During drag, use temporary selection
     if (isDragging && dragStart !== null && dragEnd !== null) {
       const start = Math.min(dragStart, dragEnd)
       const end = Math.max(dragStart, dragEnd)
       return index >= start && index <= end
     }
-    // Otherwise use committed selection
     if (!phraseSelection) return false
     return index >= phraseSelection.startIndex && index <= phraseSelection.endIndex
   }, [phraseSelection, isDragging, dragStart, dragEnd])
   
-  // Handle mouse down on word - start potential drag
   const handleMouseDown = useCallback((wordIndex: number) => {
     setIsDragging(true)
     setDragStart(wordIndex)
@@ -51,20 +42,17 @@ export function TextDisplay({
     clearPhraseSelection()
   }, [clearPhraseSelection])
   
-  // Handle mouse enter on word during drag
   const handleMouseEnter = useCallback((wordIndex: number) => {
     if (isDragging) {
       setDragEnd(wordIndex)
     }
   }, [isDragging])
   
-  // Handle mouse up - finalize selection
   const handleMouseUp = useCallback(() => {
     if (isDragging && dragStart !== null && dragEnd !== null) {
       const start = Math.min(dragStart, dragEnd)
       const end = Math.max(dragStart, dragEnd)
       
-      // Only create phrase selection if more than one word
       if (start !== end) {
         selectPhrase(start, end)
       }
@@ -74,7 +62,6 @@ export function TextDisplay({
     setDragEnd(null)
   }, [isDragging, dragStart, dragEnd, selectPhrase])
   
-  // Handle click on phrase selection
   const handlePhraseClick = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement
     const wordElement = target.closest('.word-clickable') as HTMLSpanElement
@@ -82,37 +69,29 @@ export function TextDisplay({
     if (wordElement && phraseSelection) {
       const wordIndex = parseInt(wordElement.dataset.wordIndex || '0', 10)
       
-      // Check if clicking on a selected phrase word
       if (wordIndex >= phraseSelection.startIndex && wordIndex <= phraseSelection.endIndex) {
-        // Gather all words in the phrase
-        const phraseWords: ProcessedWord[] = []
-        for (let i = phraseSelection.startIndex; i <= phraseSelection.endIndex; i++) {
-          const word = wordMap.get(i)
-          if (word) phraseWords.push(word)
-        }
+        // Gather all word tokens in the phrase
+        const phraseTokens: Token[] = processedText.tokens.filter(
+          t => t.type === 'word' && 
+               t.index >= phraseSelection.startIndex && 
+               t.index <= phraseSelection.endIndex
+        )
         
-        if (phraseWords.length > 1) {
-          onPhraseClick(phraseWords, wordElement)
+        if (phraseTokens.length > 1) {
+          onPhraseClick(phraseTokens, wordElement)
           event.stopPropagation()
         }
       }
     }
-  }, [phraseSelection, wordMap, onPhraseClick])
+  }, [phraseSelection, processedText.tokens, onPhraseClick])
   
-  // Render tokens
-  const renderToken = (token: Token) => {
+  const renderToken = useCallback((token: Token) => {
     if (token.type === 'word') {
-      const word = wordMap.get(token.index)
-      if (!word) {
-        // Fallback if word not found (shouldn't happen)
-        return <span key={token.index}>{token.value}</span>
-      }
-      
       return (
         <WordSpan
           key={token.index}
-          word={word}
-          isSelected={selectedWordId === word.id}
+          token={token}
+          isSelected={selectedWordIndex === token.index}
           isInPhraseSelection={isInPhraseSelection(token.index)}
           onClick={onWordClick}
           onDoubleClick={onWordDoubleClick}
@@ -122,9 +101,7 @@ export function TextDisplay({
       )
     }
     
-    // Punctuation and whitespace - render as-is
     if (token.type === 'whitespace') {
-      // Preserve whitespace including newlines
       return (
         <span key={token.index} className="whitespace-pre">
           {token.value}
@@ -132,9 +109,8 @@ export function TextDisplay({
       )
     }
     
-    // Punctuation
     return <span key={token.index}>{token.value}</span>
-  }
+  }, [selectedWordIndex, isInPhraseSelection, onWordClick, onWordDoubleClick, handleMouseDown, handleMouseEnter])
   
   return (
     <div 
@@ -147,5 +123,4 @@ export function TextDisplay({
       {processedText.tokens.map(renderToken)}
     </div>
   )
-}
-
+})

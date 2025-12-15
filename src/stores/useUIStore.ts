@@ -2,7 +2,8 @@ import { create } from 'zustand'
 
 interface UIStore {
   // Selected word for translation bubble
-  selectedWordId: string | null
+  selectedWordIndex: number | null
+  selectedWord: string | null  // The original word text
   bubblePosition: { x: number; y: number } | null
   bubblePlacement: 'above' | 'below'
   
@@ -17,7 +18,12 @@ interface UIStore {
   currentPage: number
   
   // Actions
-  selectWord: (wordId: string, position: { x: number; y: number }, placement: 'above' | 'below') => void
+  selectWord: (
+    wordIndex: number, 
+    word: string,
+    position: { x: number; y: number }, 
+    placement: 'above' | 'below'
+  ) => void
   clearSelection: () => void
   
   selectPhrase: (startIndex: number, endIndex: number) => void
@@ -28,28 +34,32 @@ interface UIStore {
 }
 
 export const useUIStore = create<UIStore>((set) => ({
-  selectedWordId: null,
+  selectedWordIndex: null,
+  selectedWord: null,
   bubblePosition: null,
   bubblePlacement: 'above',
   phraseSelection: null,
   displayMode: 'scroll',
   currentPage: 1,
   
-  selectWord: (wordId, position, placement) => set({
-    selectedWordId: wordId,
+  selectWord: (wordIndex, word, position, placement) => set({
+    selectedWordIndex: wordIndex,
+    selectedWord: word,
     bubblePosition: position,
     bubblePlacement: placement,
-    phraseSelection: null,  // Clear phrase selection when selecting word
+    phraseSelection: null,
   }),
   
   clearSelection: () => set({
-    selectedWordId: null,
+    selectedWordIndex: null,
+    selectedWord: null,
     bubblePosition: null,
   }),
   
   selectPhrase: (startIndex, endIndex) => set({
     phraseSelection: { startIndex, endIndex },
-    selectedWordId: null,  // Clear word selection when selecting phrase
+    selectedWordIndex: null,
+    selectedWord: null,
   }),
   
   clearPhraseSelection: () => set({
@@ -59,4 +69,3 @@ export const useUIStore = create<UIStore>((set) => ({
   setDisplayMode: (mode) => set({ displayMode: mode }),
   setCurrentPage: (page) => set({ currentPage: page }),
 }))
-
