@@ -44,10 +44,11 @@ describe('TranslationService', () => {
     expect(result.translation).toBe('[hello world]')
   })
 
-  it('processes tokens and returns ProcessedWord array', async () => {
+  it('processes tokens and returns ProcessedWord array with ? for unknown words', async () => {
     const service = new TranslationService({ provider: 'mock' })
     const tokens = tokenize('Hello world')
     
+    // Dictionary not loaded, so all words show "?"
     const processedWords = await service.processTokens(tokens, {
       source: 'en',
       target: 'ru',
@@ -55,12 +56,12 @@ describe('TranslationService', () => {
     
     expect(processedWords).toHaveLength(2)
     expect(processedWords[0].original).toBe('Hello')
-    expect(processedWords[0].translation).toBe('[Hello]')
+    expect(processedWords[0].translation).toBe('?')  // Unknown word
     expect(processedWords[1].original).toBe('world')
-    expect(processedWords[1].translation).toBe('[world]')
+    expect(processedWords[1].translation).toBe('?')  // Unknown word
   })
 
-  it('caches translations for duplicate words', async () => {
+  it('does not call LLM during processTokens (dictionary only)', async () => {
     const service = new TranslationService({ provider: 'mock' })
     const tokens = tokenize('hello hello hello')
     
@@ -68,8 +69,8 @@ describe('TranslationService', () => {
     
     await service.processTokens(tokens, { source: 'en', target: 'ru' })
     
-    // Should only translate 'hello' once despite appearing 3 times
-    expect(translateSpy).toHaveBeenCalledTimes(1)
+    // No LLM calls - dictionary only! LLM is only for retry button
+    expect(translateSpy).toHaveBeenCalledTimes(0)
   })
 
   it('reports progress during processing', async () => {
