@@ -187,11 +187,12 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     
     const findFirstVisibleTokenIndex = (): number => {
       const words = container.querySelectorAll('[data-word-index]')
-      const containerTop = container.scrollTop
+      const containerRect = container.getBoundingClientRect()
       
       for (const word of words) {
-        const wordTop = (word as HTMLElement).offsetTop
-        if (wordTop >= containerTop) {
+        const wordRect = (word as HTMLElement).getBoundingClientRect()
+        // First word whose top is at or below the container's top
+        if (wordRect.top >= containerRect.top) {
           return parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
         }
       }
@@ -224,11 +225,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     const container = scrollContainerRef.current
     if (!container) return
     
-    // Wait for content to render, then scroll to saved position (word at top)
+    // Wait for content to render, then scroll to saved position (word line at top)
     setTimeout(() => {
       const targetWord = container.querySelector(`[data-word-index="${currentText.lastReadTokenIndex}"]`) as HTMLElement
       if (targetWord) {
-        targetWord.scrollIntoView({ block: 'start' })
+        // Calculate the scroll position to put this word at the top of the container
+        const wordOffsetTop = targetWord.offsetTop
+        container.scrollTop = wordOffsetTop
         hasRestoredPosition.current = true
       }
     }, 100)
@@ -268,12 +271,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         if (mode === 'page') {
           pagination.goToTokenIndex(positionToRestore)
         } else if (mode === 'scroll' && scrollContainerRef.current) {
-          const targetWord = scrollContainerRef.current.querySelector(
+          const container = scrollContainerRef.current
+          const targetWord = container.querySelector(
             `[data-word-index="${positionToRestore}"]`
           ) as HTMLElement
           if (targetWord) {
             // Put the word's line at the very top of the scroll container
-            targetWord.scrollIntoView({ block: 'start' })
+            container.scrollTop = targetWord.offsetTop
           }
         }
       })
