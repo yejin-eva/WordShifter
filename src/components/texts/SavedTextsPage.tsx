@@ -82,17 +82,17 @@ export function SavedTextsPage({ onBack, onOpenText }: SavedTextsPageProps) {
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 w-24"
         >
           ← Back
         </button>
         
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Saved Texts</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white whitespace-nowrap">Saved Texts</h1>
         
         {texts.length > 0 ? (
           <button
             onClick={handleDeleteAll}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors w-24 text-right"
             title="Delete all saved texts"
           >
             🗑️ Delete All

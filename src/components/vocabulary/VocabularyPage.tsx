@@ -61,12 +61,12 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 w-24"
         >
           ← Back
         </button>
         
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Vocabulary</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white whitespace-nowrap">Vocabulary</h1>
         
         <button
           onClick={handleCopyAll}
