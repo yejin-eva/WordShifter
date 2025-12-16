@@ -5,10 +5,11 @@ import { UploadPage } from './components/upload/UploadPage'
 import { ReaderPage } from './components/reader/ReaderPage'
 import { VocabularyPage } from './components/vocabulary/VocabularyPage'
 import { SavedTextsPage } from './components/texts/SavedTextsPage'
+import { SettingsPage } from './components/settings/SettingsPage'
 import { useTextStore } from './stores/useTextStore'
 import { LanguageCode } from './constants/languages'
 
-type Page = 'home' | 'vocabulary' | 'reader' | 'saved'
+type Page = 'home' | 'vocabulary' | 'reader' | 'saved' | 'settings'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
@@ -27,7 +28,7 @@ function App() {
     setCurrentPage('home')
   }
 
-  const handleNavigate = (page: 'home' | 'vocabulary' | 'saved') => {
+  const handleNavigate = (page: 'home' | 'vocabulary' | 'saved' | 'settings') => {
     if (page === 'home') {
       clearCurrentText()
     }
@@ -62,6 +63,18 @@ function App() {
             onBack={() => setCurrentPage('home')} 
             onOpenText={handleOpenSavedText}
           />
+        </Layout>
+        <Toaster position="bottom-center" richColors />
+      </>
+    )
+  }
+
+  // Show settings page
+  if (currentPage === 'settings') {
+    return (
+      <>
+        <Layout onNavigate={handleNavigate} currentPage="settings">
+          <SettingsPage onBack={() => setCurrentPage('home')} />
         </Layout>
         <Toaster position="bottom-center" richColors />
       </>

@@ -92,11 +92,11 @@ body {
 }
 
 .word-clickable:hover {
-  background-color: var(--color-accent);
+  background-color: var(--highlight-color, var(--color-accent));
 }
 
 .word-selected {
-  background-color: var(--color-accent);
+  background-color: var(--highlight-color, var(--color-accent));
 }
 
 .reader-text {
