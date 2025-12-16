@@ -30,14 +30,19 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode,
   } = useUIStore()
   
-  // Initialize display mode from saved text on mount
-  const hasInitializedDisplayMode = useRef(false)
+  // Initialize display mode from saved text - tracks by text ID so it resets for each text
+  const initializedDisplayModeForTextId = useRef<string | null>(null)
   useEffect(() => {
-    if (currentText?.displayMode && !hasInitializedDisplayMode.current) {
-      hasInitializedDisplayMode.current = true
-      setDisplayMode(currentText.displayMode)
-    }
-  }, [currentText?.displayMode, setDisplayMode])
+    if (!currentText?.id) return
+    
+    // Only initialize once per text
+    if (initializedDisplayModeForTextId.current === currentText.id) return
+    initializedDisplayModeForTextId.current = currentText.id
+    
+    // Use saved mode, or default to 'scroll' for new texts
+    const modeToUse = currentText.displayMode || 'scroll'
+    setDisplayMode(modeToUse)
+  }, [currentText?.id, currentText?.displayMode, setDisplayMode])
   
   // Ref for scroll container (needed for mode switch position tracking)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
