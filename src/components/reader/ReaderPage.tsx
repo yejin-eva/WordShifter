@@ -369,31 +369,39 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         currentTokenPositionRef.current = positionToRestore
       } else if (mode === 'scroll' && scrollContainerRef.current) {
         const container = scrollContainerRef.current
-        // Query from document first to ensure we find it
-        const targetWord = document.querySelector(
+        
+        // Debug: check container state
+        console.log(`[MODE SWITCH -> SCROLL] Container className: "${container.className}"`)
+        console.log(`[MODE SWITCH -> SCROLL] Container children: ${container.children.length}`)
+        
+        // Query within the scroll container specifically
+        const targetWord = container.querySelector(
           `[data-word-index="${positionToRestore}"]`
         ) as HTMLElement
         
+        // Also try document-wide query for debugging
+        const allMatches = document.querySelectorAll(`[data-word-index="${positionToRestore}"]`)
+        console.log(`[MODE SWITCH -> SCROLL] Found ${allMatches.length} elements with data-word-index="${positionToRestore}" in document`)
+        
         if (targetWord) {
-          // Make sure it's in the scroll container
-          if (container.contains(targetWord)) {
-            // Calculate correct scroll position to put word at top
-            container.scrollTop = 0  // Reset first for accurate measurement
-            requestAnimationFrame(() => {
-              const containerRect = container.getBoundingClientRect()
-              const wordRect = targetWord.getBoundingClientRect()
-              const scrollPosition = wordRect.top - containerRect.top
-              
-              console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
-              container.scrollTop = scrollPosition
-              // Keep ref in sync with restored position
-              currentTokenPositionRef.current = positionToRestore
-            })
-          } else {
-            console.log(`[MODE SWITCH -> SCROLL] Word found but not in scroll container`)
-          }
+          // Calculate correct scroll position to put word at top
+          container.scrollTop = 0  // Reset first for accurate measurement
+          requestAnimationFrame(() => {
+            const containerRect = container.getBoundingClientRect()
+            const wordRect = targetWord.getBoundingClientRect()
+            const scrollPosition = wordRect.top - containerRect.top
+            
+            console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
+            container.scrollTop = scrollPosition
+            // Keep ref in sync with restored position
+            currentTokenPositionRef.current = positionToRestore
+          })
         } else {
-          console.log(`[MODE SWITCH -> SCROLL] Target word not found for token ${positionToRestore}`)
+          console.log(`[MODE SWITCH -> SCROLL] Target word not found in container for token ${positionToRestore}`)
+          
+          // Try to find ANY word to verify DOM is ready
+          const firstWord = container.querySelector('[data-word-index]')
+          console.log(`[MODE SWITCH -> SCROLL] First word in container: ${firstWord ? firstWord.getAttribute('data-word-index') : 'NONE'}`)
         }
       }
     }, 100)  // Give DOM time to update after hidden class removal
