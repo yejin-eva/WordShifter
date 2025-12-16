@@ -30,17 +30,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode,
   } = useUIStore()
   
-  // Initialize display mode from saved text - tracks by text ID so it resets for each text
-  const initializedDisplayModeForTextId = useRef<string | null>(null)
+  // Initialize display mode from saved text on EVERY mount (not just per text ID)
+  const hasInitializedDisplayModeRef = useRef(false)
   useEffect(() => {
     if (!currentText?.id) return
     
-    // Only initialize once per text
-    if (initializedDisplayModeForTextId.current === currentText.id) return
-    initializedDisplayModeForTextId.current = currentText.id
+    // Only initialize once per mount
+    if (hasInitializedDisplayModeRef.current) return
+    hasInitializedDisplayModeRef.current = true
     
     // Use saved mode, or default to 'scroll' for new texts
     const modeToUse = currentText.displayMode || 'scroll'
+    console.log(`[INIT] Restoring displayMode: saved="${currentText.displayMode}", using="${modeToUse}"`)
     setDisplayMode(modeToUse)
   }, [currentText?.id, currentText?.displayMode, setDisplayMode])
   
@@ -157,17 +158,17 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Restore page position when loading in page mode
   useEffect(() => {
-    console.log(`[PAGE RESTORE] Check: lastReadTokenIndex=${currentText?.lastReadTokenIndex}, totalPages=${pagination.totalPages}, displayMode=${displayMode}, hasRestored=${hasRestoredPosition.current}`)
+    console.log(`[PAGE RESTORE] Check: lastReadTokenIndex=${currentText?.lastReadTokenIndex}, totalPages=${pagination.totalPages}, displayMode=${displayMode}, hasRestored=${hasRestoredPosition.current}, currentPage=${pagination.currentPage}`)
     if (currentText?.lastReadTokenIndex !== undefined && 
         currentText.lastReadTokenIndex > 0 &&
         pagination.totalPages > 1 && 
         displayMode === 'page' &&
         !hasRestoredPosition.current) {
-      console.log(`[PAGE RESTORE] Restoring to token ${currentText.lastReadTokenIndex}`)
+      console.log(`[PAGE RESTORE] Restoring to token ${currentText.lastReadTokenIndex}, will go to page containing this token`)
       pagination.goToTokenIndex(currentText.lastReadTokenIndex)
       hasRestoredPosition.current = true
     }
-  }, [currentText?.lastReadTokenIndex, pagination.totalPages, displayMode, pagination.goToTokenIndex])
+  }, [currentText?.lastReadTokenIndex, pagination.totalPages, displayMode, pagination.goToTokenIndex, pagination.currentPage])
   
   // Refs to track initialization state (declared here so reset effect can use them)
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
@@ -194,14 +195,26 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     modeSwitchTimeRef.current = Date.now()  // Mark when mode changed
   }, [displayMode])
   
-  // Save position immediately when leaving the reader (component unmount)
+  // Store ref to storeDisplayMode for unmount save
+  const storeDisplayModeRef = useRef(storeDisplayMode)
+  storeDisplayModeRef.current = storeDisplayMode
+  
+  // Store ref to current displayMode for unmount save
+  const displayModeRef = useRef(displayMode)
+  displayModeRef.current = displayMode
+  
+  // Save position AND display mode immediately when leaving the reader (component unmount)
   useEffect(() => {
     return () => {
       // Save current position on unmount (updates both store and IndexedDB)
-      console.log(`[UNMOUNT] Saving position: token ${currentTokenPositionRef.current}`)
-      if (currentTokenPositionRef.current > 0) {
-        updateReadingPositionRef.current(currentTokenPositionRef.current)
+      const posToSave = currentTokenPositionRef.current
+      const modeToSave = displayModeRef.current
+      console.log(`[UNMOUNT] Saving position: token ${posToSave}, displayMode: ${modeToSave}`)
+      if (posToSave > 0) {
+        updateReadingPositionRef.current(posToSave)
       }
+      // Also ensure display mode is saved
+      storeDisplayModeRef.current(modeToSave)
     }
   }, [])
   
