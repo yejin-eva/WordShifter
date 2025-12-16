@@ -210,11 +210,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     const container = scrollContainerRef.current
     if (!container) return
     
-    // Wait for content to render, then scroll to saved position
+    // Wait for content to render, then scroll to saved position (word at top)
     setTimeout(() => {
       const targetWord = container.querySelector(`[data-word-index="${currentText.lastReadTokenIndex}"]`) as HTMLElement
       if (targetWord) {
-        container.scrollTop = targetWord.offsetTop - 50  // 50px offset from top
+        targetWord.scrollIntoView({ block: 'start' })
         hasRestoredPosition.current = true
       }
     }, 100)
@@ -297,12 +297,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
             `[data-word-index="${positionToRestore}"]`
           ) as HTMLElement
           if (targetWord) {
-            // Use scrollIntoView which works better after unhiding
+            // Put the word's line at the very top of the scroll container
             targetWord.scrollIntoView({ block: 'start' })
-            // Small offset for padding
-            if (scrollContainerRef.current) {
-              scrollContainerRef.current.scrollTop -= 20
-            }
           }
         }
       })
