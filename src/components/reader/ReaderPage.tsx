@@ -158,7 +158,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Save reading position when page changes (debounced) - PAGE MODE
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   useEffect(() => {
-    if (!currentText?.id || displayMode !== 'page' || pagination.currentPage === 1) return
+    if (!currentText?.id || displayMode !== 'page') return
     
     // Debounce saves to avoid too many writes
     clearTimeout(saveTimeoutRef.current)
@@ -187,9 +187,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           const rect = (word as HTMLElement).offsetTop
           if (rect >= containerTop) {
             const tokenIndex = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-            if (tokenIndex > 0) {
-              textStorage.updateReadingPosition(currentText.id, tokenIndex)
-            }
+            // Update both state and save to storage
+            setCurrentTokenPosition(tokenIndex)
+            textStorage.updateReadingPosition(currentText.id, tokenIndex)
             break
           }
         }
@@ -221,11 +221,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [currentText?.lastReadTokenIndex, displayMode])
   
   // Track current reading position (token index) - updated continuously
-  const [currentTokenPosition, setCurrentTokenPosition] = useState(0)
+  const [currentTokenPosition, setCurrentTokenPosition] = useState(
+    currentText?.lastReadTokenIndex || 0
+  )
   
-  // Update position when page changes
+  // Update position when page changes (page mode)
   useEffect(() => {
-    if (displayMode === 'page' && pagination.pageStartIndex > 0) {
+    if (displayMode === 'page') {
       setCurrentTokenPosition(pagination.pageStartIndex)
     }
   }, [displayMode, pagination.pageStartIndex])
