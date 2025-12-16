@@ -145,18 +145,29 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [])
   
   // Track current reading position (used for save on unmount)
-  const currentTokenPositionRef = useRef(currentText?.lastReadTokenIndex || 0)
+  const currentTokenPositionRef = useRef(0)
   
+  // Sync ref with saved position when text loads (crucial for unmount save!)
   useEffect(() => {
-    console.log(`[PAGE RESTORE] Check: lastReadTokenIndex=${currentText?.lastReadTokenIndex}, totalPages=${pagination.totalPages}, hasRestored=${hasRestoredPosition.current}`)
+    if (currentText?.lastReadTokenIndex !== undefined && currentText.lastReadTokenIndex > 0) {
+      console.log(`[REF SYNC] Syncing currentTokenPositionRef with lastReadTokenIndex: ${currentText.lastReadTokenIndex}`)
+      currentTokenPositionRef.current = currentText.lastReadTokenIndex
+    }
+  }, [currentText?.lastReadTokenIndex])
+  
+  // Restore page position when loading in page mode
+  useEffect(() => {
+    console.log(`[PAGE RESTORE] Check: lastReadTokenIndex=${currentText?.lastReadTokenIndex}, totalPages=${pagination.totalPages}, displayMode=${displayMode}, hasRestored=${hasRestoredPosition.current}`)
     if (currentText?.lastReadTokenIndex !== undefined && 
+        currentText.lastReadTokenIndex > 0 &&
         pagination.totalPages > 1 && 
+        displayMode === 'page' &&
         !hasRestoredPosition.current) {
       console.log(`[PAGE RESTORE] Restoring to token ${currentText.lastReadTokenIndex}`)
       pagination.goToTokenIndex(currentText.lastReadTokenIndex)
       hasRestoredPosition.current = true
     }
-  }, [currentText?.lastReadTokenIndex, pagination.totalPages, pagination.goToTokenIndex])
+  }, [currentText?.lastReadTokenIndex, pagination.totalPages, displayMode, pagination.goToTokenIndex])
   
   // Refs to track initialization state (declared here so reset effect can use them)
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
@@ -192,15 +203,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Save reading position when page changes - PAGE MODE
   // Updates ref immediately (for unmount save), debounces store update
-  // Skip initial mount to avoid overwriting restored position
+  // Skip until restoration is complete to avoid overwriting saved position
   
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'page') return
     
-    // Skip the first render - let restoration happen first
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true
-      console.log(`[PAGE MODE] Skipping initial save, waiting for restore`)
+    // Skip until restoration has happened (or no restoration needed)
+    const needsRestore = currentText.lastReadTokenIndex !== undefined && currentText.lastReadTokenIndex > 0
+    if (needsRestore && !hasRestoredPosition.current) {
+      console.log(`[PAGE MODE] Waiting for restore before saving`)
       return
     }
     
@@ -244,11 +255,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     
     const handleScroll = () => {
-      // Skip first scroll event - restoration might be in progress
-      if (!scrollInitializedRef.current) {
-        scrollInitializedRef.current = true
-        console.log(`[SCROLL MODE] First scroll after mount, skipping save to let restore complete`)
-        return  // Don't update position on first scroll!
+      // Skip until restoration is complete
+      const needsRestore = currentText?.lastReadTokenIndex !== undefined && currentText.lastReadTokenIndex > 0
+      if (needsRestore && !hasRestoredPosition.current) {
+        console.log(`[SCROLL MODE] Waiting for restore before saving`)
+        return
       }
       
       // Update ref immediately (for unmount save to use)
