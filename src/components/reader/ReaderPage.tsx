@@ -183,11 +183,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     scrollInitializedRef.current = false
   }, [currentText?.id])
   
+  // Track mode switches - skip saving for a short time after switch
+  const modeSwitchTimeRef = useRef(0)
+  
   // Also reset initialization flags when display mode changes (for mode switch restoration)
   useEffect(() => {
     console.log(`[MODE CHANGE] displayMode changed to ${displayMode}, resetting init flags`)
     hasInitializedRef.current = false
     scrollInitializedRef.current = false
+    modeSwitchTimeRef.current = Date.now()  // Mark when mode changed
   }, [displayMode])
   
   // Save position immediately when leaving the reader (component unmount)
@@ -203,15 +207,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Save reading position when page changes - PAGE MODE
   // Updates ref immediately (for unmount save), debounces store update
-  // Skip until restoration is complete to avoid overwriting saved position
+  // Skip for 500ms after mode switch to let restoration happen
   
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'page') return
     
-    // Skip until restoration has happened (or no restoration needed)
-    const needsRestore = currentText.lastReadTokenIndex !== undefined && currentText.lastReadTokenIndex > 0
-    if (needsRestore && !hasRestoredPosition.current) {
-      console.log(`[PAGE MODE] Waiting for restore before saving`)
+    // Skip saving too soon after mode switch
+    const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
+    if (timeSinceModeSwitch < 500) {
+      console.log(`[PAGE MODE] Skipping save - too soon after mode switch (${timeSinceModeSwitch}ms)`)
       return
     }
     
@@ -255,10 +259,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     
     const handleScroll = () => {
-      // Skip until restoration is complete
-      const needsRestore = currentText?.lastReadTokenIndex !== undefined && currentText.lastReadTokenIndex > 0
-      if (needsRestore && !hasRestoredPosition.current) {
-        console.log(`[SCROLL MODE] Waiting for restore before saving`)
+      // Skip saving for 500ms after mode switch (let restoration happen)
+      const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
+      if (timeSinceModeSwitch < 500) {
+        console.log(`[SCROLL MODE] Skipping save - too soon after mode switch (${timeSinceModeSwitch}ms)`)
         return
       }
       
@@ -343,32 +347,39 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode(mode)
     storeDisplayMode(mode)  // Persist to IndexedDB
     
-    // Restore position after mode switch - need extra frames for CSS 'hidden' removal
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (mode === 'page') {
-          console.log(`[MODE SWITCH -> PAGE] Calling goToTokenIndex(${positionToRestore})`)
-          pagination.goToTokenIndex(positionToRestore)
-        } else if (mode === 'scroll' && scrollContainerRef.current) {
-          const container = scrollContainerRef.current
-          const targetWord = container.querySelector(
-            `[data-word-index="${positionToRestore}"]`
-          ) as HTMLElement
-          if (targetWord) {
+    // Restore position after mode switch - use setTimeout for more reliable timing
+    setTimeout(() => {
+      if (mode === 'page') {
+        console.log(`[MODE SWITCH -> PAGE] Calling goToTokenIndex(${positionToRestore})`)
+        pagination.goToTokenIndex(positionToRestore)
+      } else if (mode === 'scroll' && scrollContainerRef.current) {
+        const container = scrollContainerRef.current
+        // Query from document first to ensure we find it
+        const targetWord = document.querySelector(
+          `[data-word-index="${positionToRestore}"]`
+        ) as HTMLElement
+        
+        if (targetWord) {
+          // Make sure it's in the scroll container
+          if (container.contains(targetWord)) {
             // Calculate correct scroll position to put word at top
             container.scrollTop = 0  // Reset first for accurate measurement
-            const containerRect = container.getBoundingClientRect()
-            const wordRect = targetWord.getBoundingClientRect()
-            const scrollPosition = wordRect.top - containerRect.top
-            
-            console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
-            container.scrollTop = scrollPosition
+            requestAnimationFrame(() => {
+              const containerRect = container.getBoundingClientRect()
+              const wordRect = targetWord.getBoundingClientRect()
+              const scrollPosition = wordRect.top - containerRect.top
+              
+              console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
+              container.scrollTop = scrollPosition
+            })
           } else {
-            console.log(`[MODE SWITCH -> SCROLL] Target word not found for token ${positionToRestore}`)
+            console.log(`[MODE SWITCH -> SCROLL] Word found but not in scroll container`)
           }
+        } else {
+          console.log(`[MODE SWITCH -> SCROLL] Target word not found for token ${positionToRestore}`)
         }
-      })
-    })
+      }
+    }, 100)  // Give DOM time to update after hidden class removal
   }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex])
   
   // Swipe gesture for page navigation on touch devices
