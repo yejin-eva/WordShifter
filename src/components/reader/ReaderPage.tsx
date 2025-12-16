@@ -129,7 +129,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   const hasRestoredPosition = useRef(false)
   
   // Track current reading position (used for save on unmount)
-  const currentTokenPositionRef = useRef(0)
+  const currentTokenPositionRef = useRef(currentText?.lastReadTokenIndex || 0)
   
   useEffect(() => {
     if (currentText?.lastReadTokenIndex !== undefined && 
@@ -187,8 +187,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           const rect = (word as HTMLElement).offsetTop
           if (rect >= containerTop) {
             const tokenIndex = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-            // Update both state and save to storage
-            setCurrentTokenPosition(tokenIndex)
+            // Update ref and save to storage
+            currentTokenPositionRef.current = tokenIndex
             textStorage.updateReadingPosition(currentText.id, tokenIndex)
             break
           }
@@ -220,22 +220,16 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }, 100)
   }, [currentText?.lastReadTokenIndex, displayMode])
   
-  // Track current reading position (token index) - updated continuously
-  const [currentTokenPosition, setCurrentTokenPosition] = useState(
-    currentText?.lastReadTokenIndex || 0
-  )
-  
-  // Update position when page changes (page mode)
+  // Update position ref when page changes (page mode)
   useEffect(() => {
     if (displayMode === 'page') {
-      setCurrentTokenPosition(pagination.pageStartIndex)
+      currentTokenPositionRef.current = pagination.pageStartIndex
     }
   }, [displayMode, pagination.pageStartIndex])
   
   // Preserve position when page size changes (resize or font change)
   const lastTotalPagesRef = useRef(pagination.totalPages)
   const lastFontSizeRef = useRef(fontSize)
-  currentTokenPositionRef.current = currentTokenPosition  // Always keep ref updated
   
   useEffect(() => {
     const totalPagesChanged = pagination.totalPages !== lastTotalPagesRef.current
@@ -266,7 +260,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         const wordTop = (word as HTMLElement).offsetTop
         if (wordTop >= containerTop) {
           const idx = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-          if (idx > 0) setCurrentTokenPosition(idx)
+          currentTokenPositionRef.current = idx
           break
         }
       }
