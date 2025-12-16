@@ -164,7 +164,7 @@ async function processDictionary(sourceLang, targetLang, cacheFile, outputPath, 
           for (const sense of entry.senses) {
             if (sense.translations) {
               for (const trans of sense.translations) {
-                if (trans.lang === targetLang || trans.code === getCodeForLang(targetLang)) {
+                if (matchesLang(trans, targetLang)) {
                   if (trans.word && trans.word.length < 40) {
                     translation = trans.word;
                     break;
@@ -211,6 +211,28 @@ function getCodeForLang(lang) {
     'Korean': 'ko',
   };
   return codes[lang] || lang.toLowerCase().substring(0, 2);
+}
+
+// More flexible language matching for translations
+function matchesLang(trans, targetLang) {
+  const targetCode = getCodeForLang(targetLang);
+  const targetLower = targetLang.toLowerCase();
+  
+  // Check various fields that might contain language info
+  if (trans.lang) {
+    const langLower = trans.lang.toLowerCase();
+    if (langLower === targetLower || langLower === targetCode) return true;
+    if (langLower.startsWith(targetLower) || langLower.startsWith(targetCode)) return true;
+  }
+  if (trans.code) {
+    const codeLower = trans.code.toLowerCase();
+    if (codeLower === targetCode) return true;
+  }
+  if (trans.language) {
+    const langLower = trans.language.toLowerCase();
+    if (langLower === targetLower || langLower === targetCode) return true;
+  }
+  return false;
 }
 
 async function main() {
