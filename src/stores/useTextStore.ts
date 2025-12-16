@@ -31,6 +31,9 @@ interface TextStore {
   
   // Load a saved text
   loadSavedText: (id: string) => Promise<boolean>
+  
+  // Update reading position (both store and IndexedDB)
+  updateReadingPosition: (tokenIndex: number) => void
 }
 
 const initialProcessingState: ProcessingState = {
@@ -226,5 +229,23 @@ export const useTextStore = create<TextStore>((set, get) => ({
       })
       return false
     }
+  },
+  
+  updateReadingPosition: (tokenIndex) => {
+    const { currentText } = get()
+    if (!currentText) return
+    
+    // Update store immediately
+    set({
+      currentText: {
+        ...currentText,
+        lastReadTokenIndex: tokenIndex,
+      },
+    })
+    
+    // Persist to IndexedDB (async, fire-and-forget)
+    textStorage.updateReadingPosition(currentText.id, tokenIndex).catch(err => {
+      console.error('Failed to persist reading position:', err)
+    })
   },
 }))

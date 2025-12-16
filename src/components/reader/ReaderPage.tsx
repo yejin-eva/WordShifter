@@ -19,7 +19,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getTranslation, updateTranslation } = useTextStore()
+  const { currentText, getTranslation, updateTranslation, updateReadingPosition } = useTextStore()
   const { 
     selectedWord,
     bubblePosition, 
@@ -146,14 +146,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [currentText?.id])
   
   // Save position immediately when leaving the reader (component unmount)
+  // Use ref to capture the latest updateReadingPosition function
+  const updateReadingPositionRef = useRef(updateReadingPosition)
+  updateReadingPositionRef.current = updateReadingPosition
+  
   useEffect(() => {
     return () => {
-      // Save current position on unmount
-      if (currentText?.id && currentTokenPositionRef.current > 0) {
-        textStorage.updateReadingPosition(currentText.id, currentTokenPositionRef.current)
+      // Save current position on unmount (updates both store and IndexedDB)
+      if (currentTokenPositionRef.current > 0) {
+        updateReadingPositionRef.current(currentTokenPositionRef.current)
       }
     }
-  }, [currentText?.id])
+  }, [])
   
   // Save reading position when page changes (debounced) - PAGE MODE
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
@@ -163,11 +167,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     // Debounce saves to avoid too many writes
     clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(() => {
-      textStorage.updateReadingPosition(currentText.id, pagination.pageStartIndex)
+      updateReadingPosition(pagination.pageStartIndex)
     }, 1000)  // Save 1 second after page change
     
     return () => clearTimeout(saveTimeoutRef.current)
-  }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex])
+  }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex, updateReadingPosition])
   
   // Save reading position on scroll (debounced) - SCROLL MODE
   useEffect(() => {
@@ -187,9 +191,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           const rect = (word as HTMLElement).offsetTop
           if (rect >= containerTop) {
             const tokenIndex = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-            // Update ref and save to storage
+            // Update ref and save to store + storage
             currentTokenPositionRef.current = tokenIndex
-            textStorage.updateReadingPosition(currentText.id, tokenIndex)
+            updateReadingPositionRef.current(tokenIndex)
             break
           }
         }
