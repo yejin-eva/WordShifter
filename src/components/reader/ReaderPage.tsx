@@ -370,39 +370,39 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       } else if (mode === 'scroll' && scrollContainerRef.current) {
         const container = scrollContainerRef.current
         
-        // Debug: check container state
-        console.log(`[MODE SWITCH -> SCROLL] Container className: "${container.className}"`)
-        console.log(`[MODE SWITCH -> SCROLL] Container children: ${container.children.length}`)
+        console.log(`[MODE SWITCH -> SCROLL] Looking for token ${positionToRestore}`)
         
-        // Query within the scroll container specifically
-        const targetWord = container.querySelector(
-          `[data-word-index="${positionToRestore}"]`
-        ) as HTMLElement
-        
-        // Also try document-wide query for debugging
-        const allMatches = document.querySelectorAll(`[data-word-index="${positionToRestore}"]`)
-        console.log(`[MODE SWITCH -> SCROLL] Found ${allMatches.length} elements with data-word-index="${positionToRestore}" in document`)
-        
-        if (targetWord) {
-          // Calculate correct scroll position to put word at top
-          container.scrollTop = 0  // Reset first for accurate measurement
-          requestAnimationFrame(() => {
-            const containerRect = container.getBoundingClientRect()
-            const wordRect = targetWord.getBoundingClientRect()
-            const scrollPosition = wordRect.top - containerRect.top
-            
-            console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
-            container.scrollTop = scrollPosition
-            // Keep ref in sync with restored position
-            currentTokenPositionRef.current = positionToRestore
-          })
-        } else {
-          console.log(`[MODE SWITCH -> SCROLL] Target word not found in container for token ${positionToRestore}`)
+        // Use a retry mechanism - DOM might not be ready immediately after unhiding
+        let attempts = 0
+        const maxAttempts = 10
+        const tryScroll = () => {
+          attempts++
+          const targetWord = container.querySelector(
+            `[data-word-index="${positionToRestore}"]`
+          ) as HTMLElement
           
-          // Try to find ANY word to verify DOM is ready
-          const firstWord = container.querySelector('[data-word-index]')
-          console.log(`[MODE SWITCH -> SCROLL] First word in container: ${firstWord ? firstWord.getAttribute('data-word-index') : 'NONE'}`)
+          if (targetWord) {
+            // Use scrollIntoView for more reliable scrolling
+            targetWord.scrollIntoView({ block: 'start', behavior: 'instant' })
+            console.log(`[MODE SWITCH -> SCROLL] Found word "${targetWord.textContent}" on attempt ${attempts}, scrolled into view`)
+            currentTokenPositionRef.current = positionToRestore
+          } else if (attempts < maxAttempts) {
+            console.log(`[MODE SWITCH -> SCROLL] Word not found, attempt ${attempts}/${maxAttempts}, retrying...`)
+            setTimeout(tryScroll, 50)
+          } else {
+            console.log(`[MODE SWITCH -> SCROLL] Failed to find word after ${maxAttempts} attempts`)
+            // Fallback: check what we can find
+            const allWords = container.querySelectorAll('[data-word-index]')
+            console.log(`[MODE SWITCH -> SCROLL] Container has ${allWords.length} words total`)
+            if (allWords.length > 0) {
+              const indices = Array.from(allWords).slice(0, 5).map(w => w.getAttribute('data-word-index'))
+              console.log(`[MODE SWITCH -> SCROLL] First few word indices: ${indices.join(', ')}`)
+            }
+          }
         }
+        
+        // Start trying after a short delay
+        setTimeout(tryScroll, 50)
       }
     }, 100)  // Give DOM time to update after hidden class removal
   }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex, pagination.pageStartIndex, pagination.currentPage])
