@@ -138,16 +138,106 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   })
   
   // ============================================
-  // POSITION TRACKING - COMPLETELY REMOVED
-  // Just simple mode switching for now
+  // POSITION TRACKING - SAVE LOGIC
+  // See ARCHITECTURE.md "Reading Position Tracking"
   // ============================================
   
-  // Simple mode switch - NO position tracking
+  // 1. Single ref - the source of truth for current position
+  const currentTokenRef = useRef<number>(0)
+  
+  // 2. Ref to updateReadingPosition for use in effects/cleanup
+  const updateReadingPositionRef = useRef(updateReadingPosition)
+  updateReadingPositionRef.current = updateReadingPosition
+  
+  // 3. Debounce timer ref
+  const saveDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // 4. Helper: save to IndexedDB (debounced or immediate)
+  const saveToIndexedDB = useCallback((immediate = false) => {
+    const token = currentTokenRef.current
+    if (token <= 0) return
+    
+    if (immediate) {
+      // Clear any pending debounce
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current)
+        saveDebounceRef.current = null
+      }
+      console.log(`[SAVE] Immediate: token ${token}`)
+      updateReadingPositionRef.current(token)
+    } else {
+      // Debounced save (1.5s)
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current)
+      }
+      saveDebounceRef.current = setTimeout(() => {
+        console.log(`[SAVE] Debounced: token ${token}`)
+        updateReadingPositionRef.current(token)
+        saveDebounceRef.current = null
+      }, 1500)
+    }
+  }, [])
+  
+  // 5. Track page changes (PAGE MODE)
+  useEffect(() => {
+    if (displayMode !== 'page') return
+    
+    currentTokenRef.current = pagination.pageStartIndex
+    console.log(`[TRACK] Page ${pagination.currentPage} → token ${pagination.pageStartIndex}`)
+    saveToIndexedDB(false) // debounced
+  }, [displayMode, pagination.currentPage, pagination.pageStartIndex, saveToIndexedDB])
+  
+  // 6. Track scroll (SCROLL MODE)
+  useEffect(() => {
+    if (displayMode !== 'scroll') return
+    const container = scrollContainerRef.current
+    if (!container) return
+    
+    const handleScroll = () => {
+      const words = container.querySelectorAll('[data-word-index]')
+      const containerRect = container.getBoundingClientRect()
+      
+      for (const word of words) {
+        const rect = (word as HTMLElement).getBoundingClientRect()
+        if (rect.top >= containerRect.top - 5) {
+          const idx = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+          currentTokenRef.current = idx
+          saveToIndexedDB(false) // debounced
+          return
+        }
+      }
+    }
+    
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [displayMode, saveToIndexedDB])
+  
+  // 7. Flush on unmount (navigate away)
+  useEffect(() => {
+    return () => {
+      console.log(`[SAVE] Unmount flush: token ${currentTokenRef.current}`)
+      if (currentTokenRef.current > 0) {
+        updateReadingPositionRef.current(currentTokenRef.current)
+      }
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current)
+      }
+    }
+  }, [])
+  
+  // ============================================
+  // MODE SWITCHING (no position restore yet)
+  // ============================================
+  
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
+    
+    // Save current position immediately before switching
+    saveToIndexedDB(true)
+    
     setDisplayMode(mode)
     storeDisplayMode(mode)
-  }, [displayMode, setDisplayMode, storeDisplayMode])
+  }, [displayMode, setDisplayMode, storeDisplayMode, saveToIndexedDB])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
