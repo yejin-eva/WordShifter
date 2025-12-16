@@ -258,10 +258,17 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setTimeout(() => {
       const targetWord = container.querySelector(`[data-word-index="${currentText.lastReadTokenIndex}"]`) as HTMLElement
       if (targetWord) {
-        // Calculate the scroll position to put this word at the top of the container
-        const wordOffsetTop = targetWord.offsetTop
-        console.log(`[SCROLL RESTORE] Restoring to token ${currentText.lastReadTokenIndex}, word: "${targetWord.textContent}", offsetTop: ${wordOffsetTop}`)
-        container.scrollTop = wordOffsetTop
+        // Calculate the correct scroll position to put word at top
+        // First scroll to top to get accurate measurements
+        container.scrollTop = 0
+        
+        // Now get the word's position relative to the container's viewport
+        const containerRect = container.getBoundingClientRect()
+        const wordRect = targetWord.getBoundingClientRect()
+        const scrollPosition = wordRect.top - containerRect.top
+        
+        console.log(`[SCROLL RESTORE] Restoring to token ${currentText.lastReadTokenIndex}, word: "${targetWord.textContent}", scrollTo: ${scrollPosition}`)
+        container.scrollTop = scrollPosition
         hasRestoredPosition.current = true
       } else {
         console.log(`[SCROLL RESTORE] Target word not found for token ${currentText.lastReadTokenIndex}`)
@@ -310,9 +317,14 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
             `[data-word-index="${positionToRestore}"]`
           ) as HTMLElement
           if (targetWord) {
-            // Put the word's line at the very top of the scroll container
-            console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${targetWord.offsetTop} for word "${targetWord.textContent}"`)
-            container.scrollTop = targetWord.offsetTop
+            // Calculate correct scroll position to put word at top
+            container.scrollTop = 0  // Reset first for accurate measurement
+            const containerRect = container.getBoundingClientRect()
+            const wordRect = targetWord.getBoundingClientRect()
+            const scrollPosition = wordRect.top - containerRect.top
+            
+            console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
+            container.scrollTop = scrollPosition
           } else {
             console.log(`[MODE SWITCH -> SCROLL] Target word not found for token ${positionToRestore}`)
           }
