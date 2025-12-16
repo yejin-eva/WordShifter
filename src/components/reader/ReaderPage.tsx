@@ -781,6 +781,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           totalPages={pagination.totalPages}
           onPrevPage={pagination.prevPage}
           onNextPage={pagination.nextPage}
+          onGoToPage={pagination.goToPage}
           hasPrevPage={pagination.hasPrevPage}
           hasNextPage={pagination.hasNextPage}
         />
