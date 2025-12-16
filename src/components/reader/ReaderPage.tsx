@@ -184,15 +184,20 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     scrollInitializedRef.current = false
   }, [currentText?.id])
   
-  // Track mode switches - skip saving for a short time after switch
+  // Track mode switches - skip saving for a short time after MANUAL switch only
   const modeSwitchTimeRef = useRef(0)
+  const isManualModeSwitchRef = useRef(false)
   
   // Also reset initialization flags when display mode changes (for mode switch restoration)
   useEffect(() => {
-    console.log(`[MODE CHANGE] displayMode changed to ${displayMode}, resetting init flags`)
+    console.log(`[MODE CHANGE] displayMode changed to ${displayMode}, isManual=${isManualModeSwitchRef.current}`)
     hasInitializedRef.current = false
     scrollInitializedRef.current = false
-    modeSwitchTimeRef.current = Date.now()  // Mark when mode changed
+    // Only set mode switch time if it was a MANUAL switch (not initial restoration)
+    if (isManualModeSwitchRef.current) {
+      modeSwitchTimeRef.current = Date.now()
+    }
+    isManualModeSwitchRef.current = false  // Reset flag
   }, [displayMode])
   
   // Store ref to storeDisplayMode for unmount save
@@ -220,16 +225,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Save reading position when page changes - PAGE MODE
   // Updates ref immediately (for unmount save), debounces store update
-  // Skip for 500ms after mode switch to let restoration happen
+  // Skip briefly after MANUAL mode switch to let restoration happen
   
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'page') return
     
-    // Skip saving too soon after mode switch
-    const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
-    if (timeSinceModeSwitch < 500) {
-      console.log(`[PAGE MODE] Skipping save - too soon after mode switch (${timeSinceModeSwitch}ms)`)
-      return
+    // Only skip if there was a recent MANUAL mode switch (modeSwitchTimeRef > 0)
+    if (modeSwitchTimeRef.current > 0) {
+      const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
+      if (timeSinceModeSwitch < 500) {
+        console.log(`[PAGE MODE] Skipping save - too soon after manual mode switch (${timeSinceModeSwitch}ms)`)
+        return
+      }
     }
     
     // Update ref immediately (for unmount save to use)
@@ -272,11 +279,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     
     const handleScroll = () => {
-      // Skip saving for 500ms after mode switch (let restoration happen)
-      const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
-      if (timeSinceModeSwitch < 500) {
-        console.log(`[SCROLL MODE] Skipping save - too soon after mode switch (${timeSinceModeSwitch}ms)`)
-        return
+      // Only skip if there was a recent MANUAL mode switch
+      if (modeSwitchTimeRef.current > 0) {
+        const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
+        if (timeSinceModeSwitch < 500) {
+          console.log(`[SCROLL MODE] Skipping save - too soon after manual mode switch (${timeSinceModeSwitch}ms)`)
+          return
+        }
       }
       
       // Update ref immediately (for unmount save to use)
@@ -370,6 +379,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     // Update ref with current position before switching
     currentTokenPositionRef.current = positionToRestore
     console.log(`[MODE SWITCH] Switching to ${mode}, position to restore: token ${positionToRestore}`)
+    
+    // Mark this as a manual switch (not restoration)
+    isManualModeSwitchRef.current = true
     setDisplayMode(mode)
     storeDisplayMode(mode)  // Persist to IndexedDB
     
