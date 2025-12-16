@@ -159,44 +159,54 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [])
   
-  // Save reading position when page changes (debounced) - PAGE MODE
+  // Save reading position when page changes - PAGE MODE
+  // Updates ref immediately (for unmount save), debounces store update
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'page') return
     
-    // Debounce saves to avoid too many writes
+    // Update ref immediately (for unmount save to use)
+    currentTokenPositionRef.current = pagination.pageStartIndex
+    
+    // Debounce store/IndexedDB save
     clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(() => {
-      updateReadingPosition(pagination.pageStartIndex)
-    }, 1000)  // Save 1 second after page change
+      updateReadingPositionRef.current(pagination.pageStartIndex)
+    }, 1000)
     
     return () => clearTimeout(saveTimeoutRef.current)
-  }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex, updateReadingPosition])
+  }, [currentText?.id, displayMode, pagination.currentPage, pagination.pageStartIndex])
   
-  // Save reading position on scroll (debounced) - SCROLL MODE
+  // Save reading position on scroll - SCROLL MODE
+  // Updates ref immediately (for unmount save), debounces store update
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'scroll') return
     
     const container = scrollContainerRef.current
     if (!container) return
     
+    const findFirstVisibleTokenIndex = (): number => {
+      const words = container.querySelectorAll('[data-word-index]')
+      const containerTop = container.scrollTop
+      
+      for (const word of words) {
+        const wordTop = (word as HTMLElement).offsetTop
+        if (wordTop >= containerTop) {
+          return parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+        }
+      }
+      return 0
+    }
+    
     const handleScroll = () => {
+      // Update ref immediately (for unmount save to use)
+      const tokenIndex = findFirstVisibleTokenIndex()
+      currentTokenPositionRef.current = tokenIndex
+      
+      // Debounce store/IndexedDB save
       clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = setTimeout(() => {
-        // Find the first visible word by checking element positions
-        const words = container.querySelectorAll('[data-word-index]')
-        const containerTop = container.scrollTop
-        
-        for (const word of words) {
-          const rect = (word as HTMLElement).offsetTop
-          if (rect >= containerTop) {
-            const tokenIndex = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-            // Update ref and save to store + storage
-            currentTokenPositionRef.current = tokenIndex
-            updateReadingPositionRef.current(tokenIndex)
-            break
-          }
-        }
+        updateReadingPositionRef.current(tokenIndex)
       }, 1000)
     }
     
@@ -224,12 +234,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }, 100)
   }, [currentText?.lastReadTokenIndex, displayMode])
   
-  // Update position ref when page changes (page mode)
-  useEffect(() => {
-    if (displayMode === 'page') {
-      currentTokenPositionRef.current = pagination.pageStartIndex
-    }
-  }, [displayMode, pagination.pageStartIndex])
   
   // Preserve position when page size changes (resize or font change)
   const lastTotalPagesRef = useRef(pagination.totalPages)
@@ -250,39 +254,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [pagination.totalPages, fontSize, displayMode, pagination.goToTokenIndex])
   
-  // Update position when scrolling
-  useEffect(() => {
-    if (displayMode !== 'scroll') return
-    const container = scrollContainerRef.current
-    if (!container) return
-    
-    const updateScrollPosition = () => {
-      const words = container.querySelectorAll('[data-word-index]')
-      const containerTop = container.scrollTop
-      
-      for (const word of words) {
-        const wordTop = (word as HTMLElement).offsetTop
-        if (wordTop >= containerTop) {
-          const idx = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-          currentTokenPositionRef.current = idx
-          break
-        }
-      }
-    }
-    
-    // Throttle scroll updates
-    let timeout: NodeJS.Timeout
-    const throttledUpdate = () => {
-      clearTimeout(timeout)
-      timeout = setTimeout(updateScrollPosition, 200)
-    }
-    
-    container.addEventListener('scroll', throttledUpdate)
-    return () => {
-      container.removeEventListener('scroll', throttledUpdate)
-      clearTimeout(timeout)
-    }
-  }, [displayMode])
   
   // Handle mode switch - use ref to avoid dependency on currentTokenPosition
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
