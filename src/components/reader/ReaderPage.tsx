@@ -12,14 +12,13 @@ import { getTranslationService } from '@/services/translation/translationService
 import { LanguageCode } from '@/constants/languages'
 import { usePagination } from '@/hooks/usePagination'
 import { useSwipeGesture } from '@/hooks/useSwipeGesture'
-import { textStorage } from '@/services/storage/textStorage'
 
 interface ReaderPageProps {
   onBack: () => void
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getTranslation, updateTranslation, updateReadingPosition } = useTextStore()
+  const { currentText, getTranslation, updateTranslation, updateReadingPosition, updateFontSize: storeFontSize } = useTextStore()
   const { 
     selectedWord,
     bubblePosition, 
@@ -108,13 +107,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   const DEFAULT_FONT_SIZE = 18
   const [fontSize, setFontSize] = useState(() => currentText?.fontSize ?? DEFAULT_FONT_SIZE)
   
-  // Handle font size change
+  // Handle font size change - update both local state and store
   const handleFontSizeChange = useCallback((newSize: number) => {
     setFontSize(newSize)
-    if (currentText?.id) {
-      textStorage.updateFontSize(currentText.id, newSize)
-    }
-  }, [currentText?.id])
+    storeFontSize(newSize)  // Updates store AND IndexedDB
+  }, [storeFontSize])
   
   // Pagination hook
   const pagination = usePagination({

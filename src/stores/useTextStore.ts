@@ -34,6 +34,9 @@ interface TextStore {
   
   // Update reading position (both store and IndexedDB)
   updateReadingPosition: (tokenIndex: number) => void
+  
+  // Update font size (both store and IndexedDB)
+  updateFontSize: (fontSize: number) => void
 }
 
 const initialProcessingState: ProcessingState = {
@@ -246,6 +249,24 @@ export const useTextStore = create<TextStore>((set, get) => ({
     // Persist to IndexedDB (async, fire-and-forget)
     textStorage.updateReadingPosition(currentText.id, tokenIndex).catch(err => {
       console.error('Failed to persist reading position:', err)
+    })
+  },
+  
+  updateFontSize: (fontSize) => {
+    const { currentText } = get()
+    if (!currentText) return
+    
+    // Update store immediately
+    set({
+      currentText: {
+        ...currentText,
+        fontSize,
+      },
+    })
+    
+    // Persist to IndexedDB (async, fire-and-forget)
+    textStorage.updateFontSize(currentText.id, fontSize).catch(err => {
+      console.error('Failed to persist font size:', err)
     })
   },
 }))
