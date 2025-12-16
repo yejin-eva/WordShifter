@@ -355,8 +355,13 @@ For each unique word in text:
 **Dictionary Sources (Wiktionary via kaikki.org):**
 - Pre-processed JSON format (no parsing needed)
 - Includes part of speech
-- ~10-20K common words per language pair (~2-5MB bundled)
-- Covers ~95% of typical book vocabulary
+- Current dictionary sizes:
+  - ru-en: 218K entries (15MB) - excellent coverage
+  - en-ru: 68K entries (3.6MB)
+  - ko-en: 38K entries (1.7MB)
+  - en-ko: 33K entries (1.4MB)
+  - ru-ko/ko-ru: 36K entries each (bridge dictionaries)
+- Total: ~25MB bundled (future: on-demand download)
 
 **When LLM is Used:**
 1. Unknown word + user clicks retry (🔄)
@@ -408,18 +413,22 @@ For each unique word in text:
 
 | Priority | Feature | Status |
 |----------|---------|--------|
-| P0 | File upload (TXT only) | 🔲 Not Started |
-| P0 | Language selection | 🔲 Not Started |
-| P0 | Basic translation (cloud API) | 🔲 Not Started |
-| P0 | Interactive reader with click-to-translate | 🔲 Not Started |
-| P1 | Vocabulary saving (basic) | 🔲 Not Started |
-| P1 | PDF support | 🔲 Not Started |
-| P1 | EPUB support | 🔲 Not Started |
-| P2 | Local model support (Ollama) | 🔲 Not Started |
-| P2 | Phrase selection translation | 🔲 Not Started |
-| P2 | Vocabulary views (per-text, per-language, total) | 🔲 Not Started |
-| P3 | Dark mode | 🔲 Not Started |
-| P3 | Settings page | 🔲 Not Started |
+| P0 | File upload (TXT, PDF, EPUB) | ✅ Complete |
+| P0 | Language selection | ✅ Complete |
+| P0 | Dictionary-based translation | ✅ Complete |
+| P0 | Interactive reader with click-to-translate | ✅ Complete |
+| P1 | Vocabulary saving | ✅ Complete |
+| P1 | PDF support | ✅ Complete |
+| P1 | EPUB support | ✅ Complete |
+| P2 | Local model support (Ollama) | ✅ Complete |
+| P2 | Phrase selection translation | ✅ Complete |
+| P2 | Vocabulary views (per-text, per-language, total) | ✅ Complete |
+| P2 | Saved texts management | ✅ Complete |
+| P2 | Page-based reading mode | ✅ Complete |
+| P2 | Reading position auto-save | ✅ Complete |
+| P3 | Dark mode | ✅ Complete |
+| P3 | Font size control (per-text) | ✅ Complete |
+| P3 | Settings page | 🔲 In Progress |
 
 ### Phase 2: Desktop Application
 **Target**: Electron or Tauri wrapper for desktop
@@ -603,35 +612,84 @@ For each unique word in text:
 
 ---
 
-### Milestone 5: "Polish & Local" (Week 9-10)
+### Milestone 5: "Polish & Local" ✅ COMPLETED
 
-**Goal**: Offline support, more file types, settings
+**Goal**: Offline support, more file types, basic settings
+
+**Completed Features:**
+- ✅ Ollama provider with model selection
+- ✅ PDF parser (pdf.js)
+- ✅ EPUB parser (epub.js)
+- ✅ Dark mode (system preference + toggle in header)
+- ✅ Font size control (per-text, in reader header)
+- ✅ Reading position auto-save
+
+---
+
+### Milestone 6: "Settings Page" (Current)
+
+**Goal**: Comprehensive settings page with user preferences
+
+**Settings Page Features:**
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Highlight Color** | Choose word highlight color from presets (yellow, green, blue, purple, pink) | P0 |
+| **LLM Provider** | Toggle between Local (Ollama) and Cloud (OpenAI) | P1 |
+| **Ollama Model** | Select model (qwen2.5:7b, mistral, llama3.2, etc.) | P1 |
+| **OpenAI API Key** | Input field for user's API key (stored locally) | P1 |
+| **Dictionary Management** | Download/delete language pair dictionaries on-demand | P2 |
 
 **Step-by-Step Implementation:**
 
 | Step | Action | Files to Create/Modify |
 |------|--------|------------------------|
-| 5.1 | Create Ollama provider | `src/services/translation/ollamaProvider.ts` |
-| 5.2 | Add Ollama availability check | Update `ollamaProvider.ts` |
-| 5.3 | Create Ollama instructions modal | `src/components/ui/OllamaInstructions.tsx` |
-| 5.4 | Add PDF parser | `src/services/fileParser/pdfParser.ts` (use pdf.js) |
-| 5.5 | Add EPUB parser | `src/services/fileParser/epubParser.ts` (use epub.js) |
-| 5.6 | Create Settings page | `src/components/settings/SettingsPage.tsx` |
-| 5.7 | Create API key input | `src/components/settings/ApiKeyInput.tsx` |
-| 5.8 | Create theme toggle | `src/components/settings/ThemeToggle.tsx` |
-| 5.9 | Implement dark mode | Update `tailwind.config.js`, `index.css` |
-| 5.10 | Create settings store | `src/stores/useSettingsStore.ts` |
-| 5.11 | Add font size control | `src/components/settings/FontSizeSlider.tsx` |
+| 6.1 | Create settings store | `src/stores/useSettingsStore.ts` |
+| 6.2 | Create Settings page skeleton | `src/components/settings/SettingsPage.tsx` |
+| 6.3 | Add Settings to navigation | Update `Layout.tsx`, `App.tsx` |
+| 6.4 | Implement highlight color selector | `src/components/settings/HighlightColorPicker.tsx` |
+| 6.5 | Update word highlight to use setting | Update `index.css`, `WordSpan.tsx` |
+| 6.6 | Add LLM provider toggle | `src/components/settings/LLMProviderSettings.tsx` |
+| 6.7 | Add OpenAI provider | `src/services/translation/openaiProvider.ts` |
+| 6.8 | Add API key input with save | Update `LLMProviderSettings.tsx` |
+| 6.9 | Create dictionary manager UI | `src/components/settings/DictionaryManager.tsx` |
+| 6.10 | Host dictionaries for download | GitHub Releases or CDN |
+| 6.11 | Implement on-demand dictionary download | `src/services/dictionary/dictionaryDownloader.ts` |
+
+**Dictionary Management Approach:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ON-DEMAND DICTIONARY DOWNLOAD                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│ 1. Bundle minimal starter dictionary (e.g., en-ru ~3MB)     │
+│ 2. When user selects new language pair:                     │
+│    └─ Check if dictionary exists in IndexedDB               │
+│       ├─ Yes → Use it                                       │
+│       └─ No  → Download from GitHub Releases, cache locally │
+│ 3. Settings page shows:                                      │
+│    ├─ Downloaded dictionaries with sizes                    │
+│    ├─ Available dictionaries to download                    │
+│    └─ Delete option to free space                           │
+│                                                              │
+│ Benefits:                                                    │
+│ - Smaller initial app size                                   │
+│ - User only downloads what they need                         │
+│ - Works offline after download                               │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **Acceptance Test:**
 ```
-1. User can switch between Local (Ollama) and Cloud (OpenAI) translation
-2. If Ollama not running, instructions modal appears with "Retry" button
-3. User can upload PDF files (text extracted correctly)
-4. User can upload EPUB files (text extracted correctly)
-5. Settings page allows: translation source, API key, theme, font size
-6. Dark mode follows system preference OR user choice
-7. All settings persist across browser sessions
+1. Settings page accessible from header navigation (⚙️)
+2. User can choose highlight color from 5 presets
+3. Highlight color persists across sessions
+4. User can toggle between Ollama and OpenAI
+5. User can input OpenAI API key (stored securely in localStorage)
+6. User can see which dictionaries are downloaded
+7. User can download new dictionaries on-demand
+8. User can delete dictionaries to free space
+9. All settings persist across browser sessions
 ```
 
 ---
@@ -675,6 +733,10 @@ For each unique word in text:
 
 | Date | Author | Changes |
 |------|--------|---------|
+| 2024-12-16 | Agent | Marked Milestone 5 complete, added Milestone 6 (Settings Page) |
+| 2024-12-16 | Agent | Added Settings page plan: highlight colors, LLM provider, dictionary management |
+| 2024-12-16 | Agent | Updated dictionary sizes to reflect actual data (218K ru-en, etc.) |
+| 2024-12-16 | Agent | Updated Phase 1 status - most features now complete |
 | 2024-12-12 | Agent | Added development decisions: mock service, minimal design, tests, git workflow (A8-A11) |
 | 2024-12-12 | Agent | Added detailed step-by-step Implementation Guide for each milestone |
 | 2024-12-12 | Agent | Added processing mode toggle (Full/Dynamic) to F1: File Upload |
