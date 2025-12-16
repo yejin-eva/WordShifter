@@ -287,9 +287,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     const positionToRestore = currentTokenPositionRef.current
     setDisplayMode(mode)
     
-    // Restore position after mode switch
+    // Restore position after mode switch - need extra frames for CSS 'hidden' removal
     requestAnimationFrame(() => {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (mode === 'page') {
           pagination.goToTokenIndex(positionToRestore)
         } else if (mode === 'scroll' && scrollContainerRef.current) {
@@ -297,10 +297,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
             `[data-word-index="${positionToRestore}"]`
           ) as HTMLElement
           if (targetWord) {
-            scrollContainerRef.current.scrollTop = targetWord.offsetTop - 20
+            // Use scrollIntoView which works better after unhiding
+            targetWord.scrollIntoView({ block: 'start' })
+            // Small offset for padding
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop -= 20
+            }
           }
         }
-      }, 50)
+      })
     })
   }, [displayMode, setDisplayMode, pagination.goToTokenIndex])
   
