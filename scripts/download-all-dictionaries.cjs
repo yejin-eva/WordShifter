@@ -29,6 +29,8 @@ const SIZE_LIMITS = {
   'small': 10000,
   'medium': 50000,
   'large': 100000,
+  'xlarge': 200000,
+  'full': 500000,
 };
 
 function downloadFile(url, destPath) {
