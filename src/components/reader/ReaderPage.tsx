@@ -228,10 +228,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     
     const handleScroll = () => {
-      // Skip first scroll event if we haven't initialized yet (restoration in progress)
+      // Skip first scroll event - restoration might be in progress
       if (!scrollInitializedRef.current) {
         scrollInitializedRef.current = true
-        console.log(`[SCROLL MODE] First scroll after mount, now tracking`)
+        console.log(`[SCROLL MODE] First scroll after mount, skipping save to let restore complete`)
+        return  // Don't update position on first scroll!
       }
       
       // Update ref immediately (for unmount save to use)
