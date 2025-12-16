@@ -18,7 +18,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getTranslation, updateTranslation, updateReadingPosition, updateFontSize: storeFontSize } = useTextStore()
+  const { currentText, getTranslation, updateTranslation, updateReadingPosition, updateFontSize: storeFontSize, updateDisplayMode: storeDisplayMode } = useTextStore()
   const { 
     selectedWord,
     bubblePosition, 
@@ -29,6 +29,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     displayMode,
     setDisplayMode,
   } = useUIStore()
+  
+  // Initialize display mode from saved text on mount
+  const hasInitializedDisplayMode = useRef(false)
+  useEffect(() => {
+    if (currentText?.displayMode && !hasInitializedDisplayMode.current) {
+      hasInitializedDisplayMode.current = true
+      setDisplayMode(currentText.displayMode)
+    }
+  }, [currentText?.displayMode, setDisplayMode])
   
   // Ref for scroll container (needed for mode switch position tracking)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -316,6 +325,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     const positionToRestore = currentTokenPositionRef.current
     console.log(`[MODE SWITCH] Switching to ${mode}, position to restore: token ${positionToRestore}`)
     setDisplayMode(mode)
+    storeDisplayMode(mode)  // Persist to IndexedDB
     
     // Restore position after mode switch - need extra frames for CSS 'hidden' removal
     requestAnimationFrame(() => {
@@ -343,7 +353,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         }
       })
     })
-  }, [displayMode, setDisplayMode, pagination.goToTokenIndex])
+  }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({

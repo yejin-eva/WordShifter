@@ -37,6 +37,9 @@ interface TextStore {
   
   // Update font size (both store and IndexedDB)
   updateFontSize: (fontSize: number) => void
+  
+  // Update display mode (both store and IndexedDB)
+  updateDisplayMode: (displayMode: 'scroll' | 'page') => void
 }
 
 const initialProcessingState: ProcessingState = {
@@ -267,6 +270,24 @@ export const useTextStore = create<TextStore>((set, get) => ({
     // Persist to IndexedDB (async, fire-and-forget)
     textStorage.updateFontSize(currentText.id, fontSize).catch(err => {
       console.error('Failed to persist font size:', err)
+    })
+  },
+  
+  updateDisplayMode: (displayMode) => {
+    const { currentText } = get()
+    if (!currentText) return
+    
+    // Update store immediately
+    set({
+      currentText: {
+        ...currentText,
+        displayMode,
+      },
+    })
+    
+    // Persist to IndexedDB (async, fire-and-forget)
+    textStorage.updateDisplayMode(currentText.id, displayMode).catch(err => {
+      console.error('Failed to persist display mode:', err)
     })
   },
 }))

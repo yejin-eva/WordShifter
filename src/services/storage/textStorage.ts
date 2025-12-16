@@ -15,6 +15,7 @@ interface StorageFormatV3 {
   lastOpenedAt: string
   lastReadTokenIndex?: number  // Token index of first word on last read page
   fontSize?: number            // Font size in pixels (saved per text)
+  displayMode?: 'scroll' | 'page'  // Last used display mode (saved per text)
   
   // Compact tokens: [type, value, index, charStart, charEnd]
   // type: 0=word, 1=punctuation, 2=whitespace
@@ -136,6 +137,7 @@ export const textStorage = {
       lastOpenedAt: new Date(data.lastOpenedAt),
       lastReadTokenIndex: data.lastReadTokenIndex,
       fontSize: data.fontSize,
+      displayMode: data.displayMode,
       tokens,
       wordDict,
     }
@@ -230,6 +232,25 @@ export const textStorage = {
       })
     } catch (error) {
       console.error('Failed to update font size:', error)
+    }
+  },
+  
+  /**
+   * Update display mode for a text
+   */
+  async updateDisplayMode(id: string, displayMode: 'scroll' | 'page'): Promise<void> {
+    const stored = await db.texts.get(id)
+    if (!stored) return
+    
+    try {
+      const data = JSON.parse(stored.data)
+      data.displayMode = displayMode
+      await db.texts.update(id, { 
+        data: JSON.stringify(data),
+        updatedAt: new Date() 
+      })
+    } catch (error) {
+      console.error('Failed to update display mode:', error)
     }
   },
   
