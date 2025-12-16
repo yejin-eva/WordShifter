@@ -338,11 +338,24 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [pagination.totalPages, fontSize, displayMode, pagination.goToTokenIndex])
   
   
-  // Handle mode switch - use ref to avoid dependency on currentTokenPosition
+  // Handle mode switch - read current position directly (not from ref which might be stale)
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
     
-    const positionToRestore = currentTokenPositionRef.current
+    // Get the CURRENT position based on which mode we're leaving
+    let positionToRestore: number
+    if (displayMode === 'page') {
+      // Leaving page mode - use current page's start index
+      positionToRestore = pagination.pageStartIndex
+      console.log(`[MODE SWITCH] Leaving page mode, current page start: ${positionToRestore}`)
+    } else {
+      // Leaving scroll mode - use ref (updated by scroll handler)
+      positionToRestore = currentTokenPositionRef.current
+      console.log(`[MODE SWITCH] Leaving scroll mode, ref position: ${positionToRestore}`)
+    }
+    
+    // Update ref with current position before switching
+    currentTokenPositionRef.current = positionToRestore
     console.log(`[MODE SWITCH] Switching to ${mode}, position to restore: token ${positionToRestore}`)
     setDisplayMode(mode)
     storeDisplayMode(mode)  // Persist to IndexedDB
@@ -352,6 +365,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       if (mode === 'page') {
         console.log(`[MODE SWITCH -> PAGE] Calling goToTokenIndex(${positionToRestore})`)
         pagination.goToTokenIndex(positionToRestore)
+        // Keep ref in sync with restored position
+        currentTokenPositionRef.current = positionToRestore
       } else if (mode === 'scroll' && scrollContainerRef.current) {
         const container = scrollContainerRef.current
         // Query from document first to ensure we find it
@@ -371,6 +386,8 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
               
               console.log(`[MODE SWITCH -> SCROLL] Setting scrollTop to ${scrollPosition} for word "${targetWord.textContent}"`)
               container.scrollTop = scrollPosition
+              // Keep ref in sync with restored position
+              currentTokenPositionRef.current = positionToRestore
             })
           } else {
             console.log(`[MODE SWITCH -> SCROLL] Word found but not in scroll container`)
@@ -380,7 +397,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         }
       }
     }, 100)  // Give DOM time to update after hidden class removal
-  }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex])
+  }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex, pagination.pageStartIndex])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
