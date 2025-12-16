@@ -156,6 +156,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     scrollInitializedRef.current = false
   }, [currentText?.id])
   
+  // Also reset initialization flags when display mode changes (for mode switch restoration)
+  useEffect(() => {
+    console.log(`[MODE CHANGE] displayMode changed to ${displayMode}, resetting init flags`)
+    hasInitializedRef.current = false
+    scrollInitializedRef.current = false
+  }, [displayMode])
+  
   // Save position immediately when leaving the reader (component unmount)
   useEffect(() => {
     return () => {
@@ -210,9 +217,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       
       for (const word of words) {
         const wordRect = (word as HTMLElement).getBoundingClientRect()
-        // First word whose top is at or below the container's top
-        if (wordRect.top >= containerRect.top) {
-          return parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+        // First word whose top is at or below the container's top (with small tolerance)
+        if (wordRect.top >= containerRect.top - 5) {
+          const idx = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+          console.log(`[SCROLL DETECT] First visible: token ${idx}, word: "${(word as HTMLElement).textContent}", wordTop: ${wordRect.top.toFixed(0)}, containerTop: ${containerRect.top.toFixed(0)}`)
+          return idx
         }
       }
       return 0

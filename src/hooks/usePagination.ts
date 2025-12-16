@@ -177,17 +177,20 @@ export function usePagination({
   
   // Find which page contains a given token index and navigate there
   const goToTokenIndex = useCallback((tokenIndex: number) => {
+    console.log(`[PAGINATION] goToTokenIndex(${tokenIndex}), pageBreaks: [${pageBreaks.slice(0, 10).join(', ')}${pageBreaks.length > 10 ? '...' : ''}]`)
     // Find the page that contains this token index
     for (let i = 0; i < pageBreaks.length; i++) {
       const pageStart = pageBreaks[i]
       const pageEnd = pageBreaks[i + 1] || tokens.length
       
       if (tokenIndex >= pageStart && tokenIndex < pageEnd) {
+        console.log(`[PAGINATION] Token ${tokenIndex} is on page ${i + 1} (pageStart: ${pageStart}, pageEnd: ${pageEnd})`)
         setCurrentPage(i + 1)  // Pages are 1-indexed
         return
       }
     }
     // If not found, go to last page
+    console.log(`[PAGINATION] Token ${tokenIndex} not found, going to last page ${totalPages}`)
     setCurrentPage(totalPages)
   }, [pageBreaks, tokens.length, totalPages])
   
