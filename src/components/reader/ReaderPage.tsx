@@ -618,9 +618,15 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           ← Back
         </button>
         
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-          {currentText.title}
-        </h2>
+        {/* Title + Language */}
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+            {currentText.title}
+          </h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            ({currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()})
+          </span>
+        </div>
         
         <div className="flex items-center gap-4">
           {/* Display mode toggle */}
@@ -645,10 +651,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
             >
               📖 Page
             </button>
-          </div>
-          
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {currentText.sourceLanguage.toUpperCase()} → {currentText.targetLanguage.toUpperCase()}
           </div>
           
           {/* Font size control */}
