@@ -149,13 +149,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   const updateReadingPositionRef = useRef(updateReadingPosition)
   updateReadingPositionRef.current = updateReadingPosition
   
-  // Debug helper to track ref changes
-  const setTokenPosition = (value: number, source: string) => {
-    const oldValue = currentTokenPositionRef.current
-    currentTokenPositionRef.current = value
-    console.log(`[REF UPDATE] ${source}: ${oldValue} -> ${value}`)
-  }
-  
   // Reset restoration flag when text changes OR component remounts
   useEffect(() => {
     hasRestoredPosition.current = false
@@ -196,7 +189,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
     
     // Update ref immediately (for unmount save to use)
-    setTokenPosition(pagination.pageStartIndex, `PAGE MODE page ${pagination.currentPage}`)
+    currentTokenPositionRef.current = pagination.pageStartIndex
     const firstWord = currentText.tokens[pagination.pageStartIndex]?.value || '?'
     console.log(`[PAGE MODE] Saved position: token ${pagination.pageStartIndex}, word: "${firstWord}", page: ${pagination.currentPage}`)
     
@@ -244,7 +237,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       
       // Update ref immediately (for unmount save to use)
       const tokenIndex = findFirstVisibleTokenIndex()
-      setTokenPosition(tokenIndex, 'SCROLL MODE')
+      currentTokenPositionRef.current = tokenIndex
       const firstWord = currentText?.tokens[tokenIndex]?.value || '?'
       console.log(`[SCROLL MODE] Saved position: token ${tokenIndex}, word: "${firstWord}"`)
       
@@ -319,7 +312,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     if (mode === displayMode) return
     
     const positionToRestore = currentTokenPositionRef.current
-    console.log(`[MODE SWITCH] Switching ${displayMode} -> ${mode}, reading ref value: ${positionToRestore}`)
+    console.log(`[MODE SWITCH] Switching to ${mode}, position to restore: token ${positionToRestore}`)
     setDisplayMode(mode)
     
     // Restore position after mode switch - need extra frames for CSS 'hidden' removal
