@@ -56,9 +56,9 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
   }
   
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <button
           onClick={onBack}
           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 w-24"
@@ -78,7 +78,7 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
       </div>
       
       {/* Filters */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6 flex-shrink-0">
         <div className="flex flex-wrap gap-4 items-end">
           {/* Filter type buttons */}
           <div className="flex gap-2">
@@ -142,18 +142,19 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
       </div>
       
       {/* Entries list */}
-      {isLoading ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
-      ) : entries.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400 mb-2">No vocabulary saved yet</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">
-            Double-click words or click 💾 while reading to save them
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {entries.map((entry) => (
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {isLoading ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400 mb-2">No vocabulary saved yet</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Double-click words or click 💾 while reading to save them
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2 pb-4">
+            {entries.map((entry) => (
             <div
               key={entry.id}
               className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
@@ -183,8 +184,9 @@ export function VocabularyPage({ onBack }: VocabularyPageProps) {
               </button>
             </div>
           ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
