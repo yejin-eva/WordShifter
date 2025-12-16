@@ -42,7 +42,38 @@ function App() {
     }
   }
 
-  // Show vocabulary page
+  // If we have loaded text, keep reader mounted but toggle visibility
+  // This prevents expensive re-renders when navigating to Settings/Vocabulary
+  const hasLoadedText = currentText && processing.status === 'complete'
+  
+  if (hasLoadedText) {
+    // Determine which view to show (reader stays mounted but hidden)
+    const isReaderVisible = currentPage === 'reader' || currentPage === 'home'
+    
+    return (
+      <>
+        <Layout onNavigate={handleNavigate} currentPage={currentPage === 'home' ? 'reader' : currentPage}>
+          {/* Reader - always mounted when text loaded, visibility toggled */}
+          <div className={isReaderVisible ? '' : 'hidden'}>
+            <ReaderPage onBack={handleBack} />
+          </div>
+          
+          {/* Other pages - mounted only when visible */}
+          {currentPage === 'settings' && <SettingsPage onBack={() => setCurrentPage('reader')} />}
+          {currentPage === 'vocabulary' && <VocabularyPage onBack={() => setCurrentPage('reader')} />}
+          {currentPage === 'saved' && (
+            <SavedTextsPage 
+              onBack={() => setCurrentPage('reader')} 
+              onOpenText={handleOpenSavedText}
+            />
+          )}
+        </Layout>
+        <Toaster position="bottom-center" richColors />
+      </>
+    )
+  }
+
+  // No loaded text - show individual pages
   if (currentPage === 'vocabulary') {
     return (
       <>
@@ -54,7 +85,6 @@ function App() {
     )
   }
 
-  // Show saved texts page
   if (currentPage === 'saved') {
     return (
       <>
@@ -69,24 +99,11 @@ function App() {
     )
   }
 
-  // Show settings page
   if (currentPage === 'settings') {
     return (
       <>
         <Layout onNavigate={handleNavigate} currentPage="settings">
           <SettingsPage onBack={() => setCurrentPage('home')} />
-        </Layout>
-        <Toaster position="bottom-center" richColors />
-      </>
-    )
-  }
-
-  // Show reader if we have processed text
-  if (currentText && processing.status === 'complete') {
-    return (
-      <>
-        <Layout onNavigate={handleNavigate} currentPage="reader">
-          <ReaderPage onBack={handleBack} />
         </Layout>
         <Toaster position="bottom-center" richColors />
       </>
