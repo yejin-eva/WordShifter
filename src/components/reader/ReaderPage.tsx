@@ -125,6 +125,11 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Restore reading position when text loads
   const hasRestoredPosition = useRef(false)
   
+  // Debug: log on mount what position we have
+  useEffect(() => {
+    console.log(`[MOUNT] ReaderPage mounted. currentText.lastReadTokenIndex=${currentText?.lastReadTokenIndex}, currentText.fontSize=${currentText?.fontSize}`)
+  }, [])
+  
   // Track current reading position (used for save on unmount)
   const currentTokenPositionRef = useRef(currentText?.lastReadTokenIndex || 0)
   
