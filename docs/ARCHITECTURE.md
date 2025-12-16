@@ -848,6 +848,73 @@ StorageService saves to IndexedDB       Update word in currentText
 Toast: "Word saved!"
 ```
 
+### Reading Position Tracking
+
+Position tracking ensures users never lose their place when reading. Position is tracked by **token index** (not page number) so it survives pagination changes.
+
+#### When to SAVE Position
+
+| Trigger | Update Ref | Persist to IndexedDB |
+|---------|-----------|---------------------|
+| Page navigation (next/prev/jump) | Immediate | Debounced (1-2s) |
+| Scroll | Immediate | Debounced (1-2s) |
+| Screen resize | Immediate | Debounced (1-2s) |
+| Font size change | Immediate | Debounced (1-2s) |
+| Mode switch (scroll↔page) | Immediate | Immediate |
+| Navigate away from reader | Immediate | Immediate (flush) |
+| Browser/tab close | Immediate | Immediate (flush) |
+
+#### When to RESTORE Position
+
+| Trigger | Action |
+|---------|--------|
+| Screen resize | `goToTokenIndex(savedToken)` after pagination recalculates |
+| Font size change | `goToTokenIndex(savedToken)` after pagination recalculates |
+| Mode switch | Show saved token in new mode (page or scroll) |
+| Navigate TO reader | From settings/vocab/saved texts → restore last position |
+
+#### Position Tracking Flow
+
+```
+User reads text
+       │
+       ├──→ Page mode: first token on current page
+       │
+       └──→ Scroll mode: first visible token in viewport
+              │
+              ▼
+       currentTokenPositionRef (in-memory)
+              │
+              ├──→ Debounced save to IndexedDB (1-2s delay)
+              │
+              └──→ Immediate flush on:
+                   - Navigate away
+                   - Mode switch  
+                   - Browser close (beforeunload)
+```
+
+#### Restore Flow
+
+```
+Event triggers restore (resize/font/mode switch/return to reader)
+       │
+       ▼
+Read savedToken from ref (or IndexedDB if remounting)
+       │
+       ├──→ Page mode: pagination.goToTokenIndex(savedToken)
+       │                  └──→ Finds page containing token
+       │
+       └──→ Scroll mode: scrollIntoView(element with token)
+                           └──→ Scrolls to show token at top
+```
+
+#### Key Principle
+
+**Track by token, not page.** When font size or screen size changes:
+- Page numbers change (bigger font = more pages)
+- Token index stays the same
+- Result: User sees the same word, just on a different page number
+
 ---
 
 ## External Integrations
