@@ -127,6 +127,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   
   // Restore reading position when text loads
   const hasRestoredPosition = useRef(false)
+  
+  // Track current reading position (used for save on unmount)
+  const currentTokenPositionRef = useRef(0)
+  
   useEffect(() => {
     if (currentText?.lastReadTokenIndex !== undefined && 
         pagination.totalPages > 1 && 
@@ -136,9 +140,19 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [currentText?.lastReadTokenIndex, pagination.totalPages, pagination.goToTokenIndex])
   
-  // Reset restoration flag when text changes
+  // Reset restoration flag when text changes OR component remounts
   useEffect(() => {
     hasRestoredPosition.current = false
+  }, [currentText?.id])
+  
+  // Save position immediately when leaving the reader (component unmount)
+  useEffect(() => {
+    return () => {
+      // Save current position on unmount
+      if (currentText?.id && currentTokenPositionRef.current > 0) {
+        textStorage.updateReadingPosition(currentText.id, currentTokenPositionRef.current)
+      }
+    }
   }, [currentText?.id])
   
   // Save reading position when page changes (debounced) - PAGE MODE
@@ -219,7 +233,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // Preserve position when page size changes (resize or font change)
   const lastTotalPagesRef = useRef(pagination.totalPages)
   const lastFontSizeRef = useRef(fontSize)
-  const currentTokenPositionRef = useRef(currentTokenPosition)
   currentTokenPositionRef.current = currentTokenPosition  // Always keep ref updated
   
   useEffect(() => {
