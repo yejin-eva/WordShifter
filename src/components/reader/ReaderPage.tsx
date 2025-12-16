@@ -230,6 +230,16 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   useEffect(() => {
     if (!currentText?.id || displayMode !== 'page') return
     
+    // CRITICAL: Skip if we haven't restored yet but should restore
+    // This prevents overwriting the saved position before restoration completes
+    const shouldRestore = currentText.lastReadTokenIndex !== undefined && 
+                          currentText.lastReadTokenIndex > 0 && 
+                          pagination.totalPages > 1
+    if (shouldRestore && !hasRestoredPosition.current) {
+      console.log(`[PAGE MODE] Skipping save - waiting for restoration first`)
+      return
+    }
+    
     // Only skip if there was a recent MANUAL mode switch (modeSwitchTimeRef > 0)
     if (modeSwitchTimeRef.current > 0) {
       const timeSinceModeSwitch = Date.now() - modeSwitchTimeRef.current
