@@ -347,7 +347,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     if (displayMode === 'page') {
       // Leaving page mode - use current page's start index
       positionToRestore = pagination.pageStartIndex
-      console.log(`[MODE SWITCH] Leaving page mode, current page start: ${positionToRestore}`)
+      console.log(`[MODE SWITCH] Leaving page mode, currentPage=${pagination.currentPage}, pageStartIndex=${pagination.pageStartIndex}, ref=${currentTokenPositionRef.current}`)
     } else {
       // Leaving scroll mode - use ref (updated by scroll handler)
       positionToRestore = currentTokenPositionRef.current
@@ -405,7 +405,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
         }
       }
     }, 100)  // Give DOM time to update after hidden class removal
-  }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex, pagination.pageStartIndex])
+  }, [displayMode, setDisplayMode, storeDisplayMode, pagination.goToTokenIndex, pagination.pageStartIndex, pagination.currentPage])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
