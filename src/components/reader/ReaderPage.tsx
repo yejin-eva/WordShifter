@@ -18,7 +18,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ onBack }: ReaderPageProps) {
-  const { currentText, getTranslation, updateTranslation, updateReadingPosition, updateFontSize: storeFontSize, updateDisplayMode: storeDisplayMode } = useTextStore()
+  const { currentText, getTranslation, updateTranslation, updateFontSize: storeFontSize, updateDisplayMode: storeDisplayMode } = useTextStore()
   const { 
     selectedWord,
     bubblePosition, 
@@ -138,215 +138,14 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   })
   
   // ============================================
-  // POSITION TRACKING - SAVE LOGIC
-  // See ARCHITECTURE.md "Reading Position Tracking"
-  // ============================================
-  
-  // 1. Single ref - the source of truth for current position
-  const currentTokenRef = useRef<number>(0)
-  
-  // 2. Ref to updateReadingPosition for use in effects/cleanup
-  const updateReadingPositionRef = useRef(updateReadingPosition)
-  updateReadingPositionRef.current = updateReadingPosition
-  
-  // 3. Debounce timer ref
-  const saveDebounceRef = useRef<NodeJS.Timeout | null>(null)
-  
-  // 3b. Track if initial restore is complete (to avoid tracking overwriting saved position)
-  const hasRestoredRef = useRef(false)
-  
-  // 3c. Track last known values to detect changes (for resize/font restore)
-  const lastTotalPagesRef = useRef(pagination.totalPages)
-  const lastFontSizeRef = useRef(fontSize)
-  
-  // 4. Helper: save to IndexedDB (debounced or immediate)
-  const saveToIndexedDB = useCallback((immediate = false) => {
-    const token = currentTokenRef.current
-    if (token <= 0) return
-    
-    if (immediate) {
-      // Clear any pending debounce
-      if (saveDebounceRef.current) {
-        clearTimeout(saveDebounceRef.current)
-        saveDebounceRef.current = null
-      }
-      console.log(`[SAVE] Immediate: token ${token}`)
-      updateReadingPositionRef.current(token)
-    } else {
-      // Debounced save (1.5s)
-      if (saveDebounceRef.current) {
-        clearTimeout(saveDebounceRef.current)
-      }
-      saveDebounceRef.current = setTimeout(() => {
-        console.log(`[SAVE] Debounced: token ${token}`)
-        updateReadingPositionRef.current(token)
-        saveDebounceRef.current = null
-      }, 1500)
-    }
-  }, [])
-  
-  // 5. Track page changes (PAGE MODE)
-  // ONLY track if hasRestoredRef is TRUE (restore has completed or confirmed not needed)
-  useEffect(() => {
-    if (displayMode !== 'page') return
-    if (!hasRestoredRef.current) {
-      console.log(`[TRACK] Blocked - waiting for restore`)
-      return
-    }
-    
-    currentTokenRef.current = pagination.pageStartIndex
-    console.log(`[TRACK] Page ${pagination.currentPage} → token ${pagination.pageStartIndex}`)
-    saveToIndexedDB(false) // debounced
-  }, [displayMode, pagination.currentPage, pagination.pageStartIndex, saveToIndexedDB])
-  
-  // 6. Track scroll (SCROLL MODE)
-  useEffect(() => {
-    if (displayMode !== 'scroll') return
-    const container = scrollContainerRef.current
-    if (!container) return
-    
-    const handleScroll = () => {
-      // Skip tracking until initial restore is complete
-      if (!hasRestoredRef.current) return
-      
-      const words = container.querySelectorAll('[data-word-index]')
-      const containerRect = container.getBoundingClientRect()
-      
-      for (const word of words) {
-        const rect = (word as HTMLElement).getBoundingClientRect()
-        if (rect.top >= containerRect.top - 5) {
-          const idx = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
-          currentTokenRef.current = idx
-          saveToIndexedDB(false) // debounced
-          return
-        }
-      }
-    }
-    
-    container.addEventListener('scroll', handleScroll)
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [displayMode, saveToIndexedDB])
-  
-  // 7. Flush on unmount (navigate away)
-  useEffect(() => {
-    return () => {
-      console.log(`[SAVE] Unmount flush: token ${currentTokenRef.current}`)
-      if (currentTokenRef.current > 0) {
-        updateReadingPositionRef.current(currentTokenRef.current)
-      }
-      if (saveDebounceRef.current) {
-        clearTimeout(saveDebounceRef.current)
-      }
-    }
-  }, [])
-  
-  // ============================================
-  // POSITION TRACKING - RESTORE LOGIC
-  // ============================================
-  
-  // 8. Restore on mount (returning to reader)
-  useEffect(() => {
-    if (hasRestoredRef.current) return
-    
-    // If no position to restore, mark as restored so tracking can begin
-    if (!currentText?.lastReadTokenIndex || currentText.lastReadTokenIndex <= 0) {
-      hasRestoredRef.current = true
-      console.log(`[RESTORE] No saved position, starting fresh`)
-      return
-    }
-    
-    const savedToken = currentText.lastReadTokenIndex
-    
-    // Initialize ref with saved position
-    currentTokenRef.current = savedToken
-    
-    if (displayMode === 'page' && pagination.totalPages > 1) {
-      console.log(`[RESTORE] Page mode: going to token ${savedToken}`)
-      pagination.goToTokenIndex(savedToken)
-      lastTotalPagesRef.current = pagination.totalPages // Sync so resize doesn't immediately trigger
-      hasRestoredRef.current = true
-    } else if (displayMode === 'scroll') {
-      // For scroll mode, wait a bit then scroll to the word
-      setTimeout(() => {
-        // Query from document since container might still be hidden
-        const targetWord = document.querySelector(`[data-word-index="${savedToken}"]`) as HTMLElement
-        if (targetWord) {
-          targetWord.scrollIntoView({ block: 'start' })
-          console.log(`[RESTORE] Scroll mode: scrolled to token ${savedToken}`)
-        } else {
-          console.log(`[RESTORE] Scroll mode: word not found for token ${savedToken}`)
-        }
-        hasRestoredRef.current = true
-      }, 150)
-    }
-  }, [currentText?.lastReadTokenIndex, displayMode, pagination.totalPages, pagination.goToTokenIndex])
-  
-  // 9. Restore on resize (pagination changes) - only AFTER initial restore complete
-  useEffect(() => {
-    if (displayMode !== 'page') return
-    if (!hasRestoredRef.current) return // Wait for initial restore
-    if (pagination.totalPages === lastTotalPagesRef.current) return
-    if (currentTokenRef.current <= 0) return
-    
-    console.log(`[RESTORE] Resize: pages changed ${lastTotalPagesRef.current} → ${pagination.totalPages}, restoring token ${currentTokenRef.current}`)
-    pagination.goToTokenIndex(currentTokenRef.current)
-    lastTotalPagesRef.current = pagination.totalPages
-  }, [displayMode, pagination.totalPages, pagination.goToTokenIndex])
-  
-  // 10. Restore on font size change - only AFTER initial restore complete
-  useEffect(() => {
-    if (displayMode !== 'page') return
-    if (!hasRestoredRef.current) return // Wait for initial restore
-    if (fontSize === lastFontSizeRef.current) return
-    if (currentTokenRef.current <= 0) return
-    
-    console.log(`[RESTORE] Font change: ${lastFontSizeRef.current}px → ${fontSize}px, restoring token ${currentTokenRef.current}`)
-    lastFontSizeRef.current = fontSize
-    // Wait for pagination to recalculate after font change
-    setTimeout(() => {
-      pagination.goToTokenIndex(currentTokenRef.current)
-    }, 50)
-  }, [displayMode, fontSize, pagination.goToTokenIndex])
-  
-  // ============================================
-  // MODE SWITCHING
+  // MODE SWITCHING - Just switch, no position tracking
   // ============================================
   
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
-    
-    // Capture current position before switching
-    const tokenToRestore = displayMode === 'page' 
-      ? pagination.pageStartIndex 
-      : currentTokenRef.current
-    
-    console.log(`[MODE SWITCH] ${displayMode} → ${mode}, token ${tokenToRestore}`)
-    
-    // Save immediately
-    currentTokenRef.current = tokenToRestore
-    saveToIndexedDB(true)
-    
-    // Switch mode
     setDisplayMode(mode)
     storeDisplayMode(mode)
-    
-    // Restore in new mode (need to wait for React to update DOM)
-    setTimeout(() => {
-      if (mode === 'page') {
-        console.log(`[MODE SWITCH] Restoring in page mode: token ${tokenToRestore}`)
-        pagination.goToTokenIndex(tokenToRestore)
-      } else if (mode === 'scroll') {
-        // Query from document - the scroll container might not be directly accessible yet
-        const targetWord = document.querySelector(`[data-word-index="${tokenToRestore}"]`) as HTMLElement
-        if (targetWord) {
-          targetWord.scrollIntoView({ block: 'start' })
-          console.log(`[MODE SWITCH] Restored in scroll mode: token ${tokenToRestore}`)
-        } else {
-          console.log(`[MODE SWITCH] Word not found for token ${tokenToRestore}`)
-        }
-      }
-    }, 200) // Longer wait for DOM to update after mode switch
-  }, [displayMode, setDisplayMode, storeDisplayMode, saveToIndexedDB, pagination.pageStartIndex, pagination.goToTokenIndex])
+  }, [displayMode, setDisplayMode, storeDisplayMode])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
