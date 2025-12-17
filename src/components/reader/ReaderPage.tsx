@@ -156,7 +156,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   tokensRef.current = currentText?.tokens || []
   
   // Stable save function - never changes, always reads current values from refs
-  const savePosition = useCallback(() => {
+  const savePosition = useCallback((): number => {
     let position = 0
     const mode = displayModeRef.current
     const tokens = tokensRef.current
@@ -169,13 +169,14 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     } else {
       const container = scrollContainerRef.current
       if (container) {
-        const words = container.querySelectorAll('[data-word-index]')
+        // Use data-token-index so whitespace/punctuation can be saved too
+        const tokensEls = container.querySelectorAll('[data-token-index]')
         const containerRect = container.getBoundingClientRect()
         
-        for (const wordEl of words) {
-          const rect = (wordEl as HTMLElement).getBoundingClientRect()
+        for (const el of tokensEls) {
+          const rect = (el as HTMLElement).getBoundingClientRect()
           if (rect.top >= containerRect.top - 5) {
-            position = parseInt((wordEl as HTMLElement).dataset.wordIndex || '0', 10)
+            position = parseInt((el as HTMLElement).dataset.tokenIndex || '0', 10)
             const word = tokens[position]?.value || '???'
             console.log(`[SAVE] Scroll mode - index: ${position}, word: "${word}"`)
             break
@@ -186,6 +187,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     
     console.log(`[SAVE] Saving position: ${position}`)
     updateReadingPositionRef.current(position)
+    return position
   }, []) // Empty deps - stable function
   
   // Register save callback with store ONCE on mount
@@ -214,12 +216,13 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     } else {
       const container = scrollContainerRef.current
       if (container) {
-        const wordElement = container.querySelector(`[data-word-index="${tokenIndex}"]`) as HTMLElement
-        if (wordElement) {
-          wordElement.scrollIntoView({ block: 'start', behavior: 'instant' })
-          console.log(`[RESTORE] Scrolled to word`)
+        const tokenElement = container.querySelector(`[data-token-index="${tokenIndex}"]`) as HTMLElement
+        if (tokenElement) {
+          // scrollTop is more reliable than scrollIntoView when toggling hidden/display
+          container.scrollTop = tokenElement.offsetTop
+          console.log(`[RESTORE] Scrolled to token`)
         } else {
-          console.log(`[RESTORE] Word element not found`)
+          console.log(`[RESTORE] Token element not found`)
         }
       } else {
         console.log(`[RESTORE] Scroll container not found`)
@@ -257,9 +260,78 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // MODE SWITCHING (save only, no restore yet)
   // ============================================
   
+  // Pending mode-switch restore (only used for scroll<->page switching)
+  const pendingModeRestoreRef = useRef<{
+    tokenIndex: number
+    targetMode: 'scroll' | 'page'
+  } | null>(null)
+  
+  // Apply pending restore after a mode switch.
+  // This keeps the flow simple and explicit:
+  // save -> switch -> restore (when ready)
+  useEffect(() => {
+    const pending = pendingModeRestoreRef.current
+    if (!pending) return
+    if (displayMode !== pending.targetMode) return
+    if (!currentText?.id) return
+    
+    const tokenIndex = pending.tokenIndex
+    
+    if (displayMode === 'page') {
+      // Page mode depends on page container height/width, which can differ from scroll mode.
+      // Wait for real measured dimensions (avoid defaults).
+      if (containerHeight === 500 && containerWidth === 800) return
+      if (pagination.totalPages < 1) return
+      
+      // Don't clear pending until token is actually inside the current page range.
+      // Pagination can recalc after first restore (e.g. page footer affects height).
+      if (tokenIndex >= pagination.pageStartIndex && tokenIndex < pagination.pageEndIndex) {
+        console.log(
+          `[RESTORE] ModeSwitch -> page DONE (token ${tokenIndex} in ${pagination.pageStartIndex}-${pagination.pageEndIndex})`
+        )
+        pendingModeRestoreRef.current = null
+        return
+      }
+      
+      requestAnimationFrame(() => {
+        console.log(`[RESTORE] ModeSwitch -> page retry, token ${tokenIndex}`)
+        paginationRef.current.goToTokenIndex(tokenIndex)
+      })
+      return
+    }
+    
+    // Scroll mode: scroll container exists and tokens are already rendered (hidden/shown via CSS).
+    const container = scrollContainerRef.current
+    if (!container) return
+    
+    // Token may be whitespace/punct/word; all tokens have data-token-index now.
+    const el = container.querySelector(`[data-token-index="${tokenIndex}"]`) as HTMLElement | null
+    if (!el) return
+    
+    requestAnimationFrame(() => {
+      container.scrollTop = el.offsetTop
+      console.log(`[RESTORE] ModeSwitch -> scroll, token ${tokenIndex}`)
+      pendingModeRestoreRef.current = null
+    })
+  }, [
+    displayMode,
+    currentText?.id,
+    containerHeight,
+    containerWidth,
+    pagination.totalPages,
+    pagination.pageStartIndex,
+    pagination.pageEndIndex,
+  ])
+  
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
-    savePosition()
+    
+    // 1) SAVE
+    const tokenIndex = savePosition()
+    
+    // 2) SWITCH
+    pendingModeRestoreRef.current = { tokenIndex, targetMode: mode }
+    console.log(`[MODE SWITCH] ${displayMode} → ${mode}, token ${tokenIndex}`)
     setDisplayMode(mode)
     storeDisplayMode(mode)
   }, [displayMode, savePosition, setDisplayMode, storeDisplayMode])

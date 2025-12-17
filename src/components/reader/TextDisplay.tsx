@@ -145,13 +145,17 @@ export const TextDisplay = memo(function TextDisplay({
       
       if (token.type === 'whitespace') {
         return (
-          <span key={token.index} className="whitespace-pre">
+          <span key={token.index} className="whitespace-pre" data-token-index={token.index}>
             {token.value}
           </span>
         )
       }
       
-      return <span key={token.index}>{token.value}</span>
+      return (
+        <span key={token.index} data-token-index={token.index}>
+          {token.value}
+        </span>
+      )
     })
     console.timeEnd('renderTokens')
     return result

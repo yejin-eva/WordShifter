@@ -61,6 +61,7 @@ export const WordSpan = memo(function WordSpan({
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
       data-word-index={token.index}
+      data-token-index={token.index}
     >
       {token.value}
     </span>
