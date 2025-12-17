@@ -138,14 +138,68 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   })
   
   // ============================================
-  // MODE SWITCHING - Just switch, no position tracking
+  // POSITION SAVING
+  // ============================================
+  
+  const { updateReadingPosition, setSavePositionCallback } = useTextStore()
+  
+  // Store current values in refs for stable callback
+  const displayModeRef = useRef(displayMode)
+  displayModeRef.current = displayMode
+  const paginationRef = useRef(pagination)
+  paginationRef.current = pagination
+  const updateReadingPositionRef = useRef(updateReadingPosition)
+  updateReadingPositionRef.current = updateReadingPosition
+  
+  // Stable save function - never changes, always reads current values from refs
+  const savePosition = useCallback(() => {
+    let position = 0
+    
+    if (displayModeRef.current === 'page') {
+      position = paginationRef.current.pageStartIndex
+    } else {
+      const container = scrollContainerRef.current
+      if (container) {
+        const words = container.querySelectorAll('[data-word-index]')
+        const containerRect = container.getBoundingClientRect()
+        
+        for (const word of words) {
+          const rect = (word as HTMLElement).getBoundingClientRect()
+          if (rect.top >= containerRect.top - 5) {
+            position = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+            break
+          }
+        }
+      }
+    }
+    
+    // Save position (0 is valid - means start of text)
+    console.log(`[SAVE] Position: ${position}`)
+    updateReadingPositionRef.current(position)
+  }, []) // Empty deps - stable function
+  
+  // Register save callback with store ONCE on mount
+  useEffect(() => {
+    console.log(`[READER] Registering savePosition callback`)
+    setSavePositionCallback(savePosition)
+  }, [setSavePositionCallback, savePosition])
+  
+  // Wrapped back - saves position before going back
+  const handleBack = useCallback(() => {
+    savePosition()
+    onBack()
+  }, [savePosition, onBack]) // savePosition is stable (empty deps)
+  
+  // ============================================
+  // MODE SWITCHING
   // ============================================
   
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
+    savePosition()
     setDisplayMode(mode)
     storeDisplayMode(mode)
-  }, [displayMode, setDisplayMode, storeDisplayMode])
+  }, [displayMode, savePosition, setDisplayMode, storeDisplayMode])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
@@ -414,7 +468,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       {/* Header bar */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
         >
           ← Back

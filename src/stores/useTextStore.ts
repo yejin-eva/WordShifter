@@ -40,6 +40,10 @@ interface TextStore {
   
   // Update display mode (both store and IndexedDB)
   updateDisplayMode: (displayMode: 'scroll' | 'page') => void
+  
+  // Save position callback - set by ReaderPage, called before navigation
+  savePositionCallback: (() => void) | null
+  setSavePositionCallback: (callback: (() => void) | null) => void
 }
 
 const initialProcessingState: ProcessingState = {
@@ -289,5 +293,11 @@ export const useTextStore = create<TextStore>((set, get) => ({
     textStorage.updateDisplayMode(currentText.id, displayMode).catch(err => {
       console.error('Failed to persist display mode:', err)
     })
+  },
+  
+  // Save position callback management
+  savePositionCallback: null,
+  setSavePositionCallback: (callback) => {
+    set({ savePositionCallback: callback })
   },
 }))

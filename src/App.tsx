@@ -13,7 +13,7 @@ type Page = 'home' | 'vocabulary' | 'reader' | 'saved' | 'settings'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
-  const { currentText, processing, processFile, clearCurrentText, loadSavedText } = useTextStore()
+  const { currentText, processing, processFile, clearCurrentText, loadSavedText, savePositionCallback } = useTextStore()
 
   const handleProcess = async (
     file: File, 
@@ -21,14 +21,32 @@ function App() {
     targetLanguage: LanguageCode
   ) => {
     await processFile(file, sourceLanguage, targetLanguage)
+    // Set page to reader after processing
+    setCurrentPage('reader')
   }
 
   const handleBack = () => {
+    // Save position before leaving
+    if (savePositionCallback) {
+      console.log(`[NAV] handleBack - calling savePositionCallback`)
+      savePositionCallback()
+    }
     clearCurrentText()
     setCurrentPage('home')
   }
 
   const handleNavigate = (page: 'home' | 'vocabulary' | 'saved' | 'settings') => {
+    console.log(`[NAV] Navigate to ${page}, currentPage=${currentPage}, callback exists=${!!savePositionCallback}`)
+    
+    // Save position if currently in reader mode
+    if (currentPage === 'reader') {
+      if (savePositionCallback) {
+        console.log(`[NAV] Calling savePositionCallback`)
+        savePositionCallback()
+      } else {
+        console.log(`[NAV] No savePositionCallback!`)
+      }
+    }
     if (page === 'home') {
       clearCurrentText()
     }
@@ -42,12 +60,16 @@ function App() {
     }
   }
 
+  // Helper: where should "Back" go? Reader if text is loaded, otherwise home
+  const hasTextLoaded = currentText && processing.status === 'complete'
+  const backDestination = hasTextLoaded ? 'reader' : 'home'
+
   // Show vocabulary page
   if (currentPage === 'vocabulary') {
     return (
       <>
         <Layout onNavigate={handleNavigate} currentPage="vocabulary">
-          <VocabularyPage onBack={() => setCurrentPage('home')} />
+          <VocabularyPage onBack={() => setCurrentPage(backDestination)} />
         </Layout>
         <Toaster position="bottom-center" richColors />
       </>
@@ -60,7 +82,7 @@ function App() {
       <>
         <Layout onNavigate={handleNavigate} currentPage="saved">
           <SavedTextsPage 
-            onBack={() => setCurrentPage('home')} 
+            onBack={() => setCurrentPage(backDestination)} 
             onOpenText={handleOpenSavedText}
           />
         </Layout>
@@ -74,15 +96,15 @@ function App() {
     return (
       <>
         <Layout onNavigate={handleNavigate} currentPage="settings">
-          <SettingsPage onBack={() => setCurrentPage('home')} />
+          <SettingsPage onBack={() => setCurrentPage(backDestination)} />
         </Layout>
         <Toaster position="bottom-center" richColors />
       </>
     )
   }
 
-  // Show reader if we have processed text
-  if (currentText && processing.status === 'complete') {
+  // Show reader if we're on reader page AND have processed text
+  if (currentPage === 'reader' && currentText && processing.status === 'complete') {
     return (
       <>
         <Layout onNavigate={handleNavigate} currentPage="reader">
