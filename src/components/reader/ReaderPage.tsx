@@ -155,6 +155,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // 3b. Track if initial restore is complete (to avoid tracking overwriting saved position)
   const hasRestoredRef = useRef(false)
   
+  // 3c. Track last known values to detect changes (for resize/font restore)
+  const lastTotalPagesRef = useRef(pagination.totalPages)
+  const lastFontSizeRef = useRef(fontSize)
+  
   // 4. Helper: save to IndexedDB (debounced or immediate)
   const saveToIndexedDB = useCallback((immediate = false) => {
     const token = currentTokenRef.current
@@ -182,18 +186,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [])
   
   // 5. Track page changes (PAGE MODE)
-  // Skip until initial restore is done to avoid overwriting saved position
+  // ONLY track if hasRestoredRef is TRUE (restore has completed or confirmed not needed)
   useEffect(() => {
     if (displayMode !== 'page') return
-    if (!hasRestoredRef.current && currentText?.lastReadTokenIndex && currentText.lastReadTokenIndex > 0) {
-      // Still waiting for restore - don't track yet
+    if (!hasRestoredRef.current) {
+      console.log(`[TRACK] Blocked - waiting for restore`)
       return
     }
     
     currentTokenRef.current = pagination.pageStartIndex
     console.log(`[TRACK] Page ${pagination.currentPage} → token ${pagination.pageStartIndex}`)
     saveToIndexedDB(false) // debounced
-  }, [displayMode, pagination.currentPage, pagination.pageStartIndex, saveToIndexedDB, currentText?.lastReadTokenIndex])
+  }, [displayMode, pagination.currentPage, pagination.pageStartIndex, saveToIndexedDB])
   
   // 6. Track scroll (SCROLL MODE)
   useEffect(() => {
@@ -259,6 +263,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     if (displayMode === 'page' && pagination.totalPages > 1) {
       console.log(`[RESTORE] Page mode: going to token ${savedToken}`)
       pagination.goToTokenIndex(savedToken)
+      lastTotalPagesRef.current = pagination.totalPages // Sync so resize doesn't immediately trigger
       hasRestoredRef.current = true
     } else if (displayMode === 'scroll') {
       // For scroll mode, wait a bit then scroll to the word
@@ -276,10 +281,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     }
   }, [currentText?.lastReadTokenIndex, displayMode, pagination.totalPages, pagination.goToTokenIndex])
   
-  // 9. Restore on resize (pagination changes)
-  const lastTotalPagesRef = useRef(pagination.totalPages)
+  // 9. Restore on resize (pagination changes) - only AFTER initial restore complete
   useEffect(() => {
     if (displayMode !== 'page') return
+    if (!hasRestoredRef.current) return // Wait for initial restore
     if (pagination.totalPages === lastTotalPagesRef.current) return
     if (currentTokenRef.current <= 0) return
     
@@ -288,10 +293,10 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     lastTotalPagesRef.current = pagination.totalPages
   }, [displayMode, pagination.totalPages, pagination.goToTokenIndex])
   
-  // 10. Restore on font size change
-  const lastFontSizeRef = useRef(fontSize)
+  // 10. Restore on font size change - only AFTER initial restore complete
   useEffect(() => {
     if (displayMode !== 'page') return
+    if (!hasRestoredRef.current) return // Wait for initial restore
     if (fontSize === lastFontSizeRef.current) return
     if (currentTokenRef.current <= 0) return
     
