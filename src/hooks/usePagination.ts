@@ -95,6 +95,7 @@ export function usePagination({
   // Build page boundaries based on token positions
   // We'll group tokens into pages based on estimated line usage
   const pageBreaks = useMemo(() => {
+    console.log(`[PAGINATION] Calculating pageBreaks: containerHeight=${containerHeight}, containerWidth=${containerWidth}, fontSize=${fontSize}, linesPerPage=${linesPerPage}, charsPerLine=${charsPerLine}`)
     if (tokens.length === 0) return [0]
     
     const breaks: number[] = [0]

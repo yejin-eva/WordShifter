@@ -151,30 +151,40 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   const updateReadingPositionRef = useRef(updateReadingPosition)
   updateReadingPositionRef.current = updateReadingPosition
   
+  // Ref to access tokens for debug logging
+  const tokensRef = useRef(currentText?.tokens || [])
+  tokensRef.current = currentText?.tokens || []
+  
   // Stable save function - never changes, always reads current values from refs
   const savePosition = useCallback(() => {
     let position = 0
+    const mode = displayModeRef.current
+    const tokens = tokensRef.current
     
-    if (displayModeRef.current === 'page') {
+    if (mode === 'page') {
+      const page = paginationRef.current.currentPage
       position = paginationRef.current.pageStartIndex
+      const word = tokens[position]?.value || '???'
+      console.log(`[SAVE] Page mode - page ${page}, index: ${position}, word: "${word}"`)
     } else {
       const container = scrollContainerRef.current
       if (container) {
         const words = container.querySelectorAll('[data-word-index]')
         const containerRect = container.getBoundingClientRect()
         
-        for (const word of words) {
-          const rect = (word as HTMLElement).getBoundingClientRect()
+        for (const wordEl of words) {
+          const rect = (wordEl as HTMLElement).getBoundingClientRect()
           if (rect.top >= containerRect.top - 5) {
-            position = parseInt((word as HTMLElement).dataset.wordIndex || '0', 10)
+            position = parseInt((wordEl as HTMLElement).dataset.wordIndex || '0', 10)
+            const word = tokens[position]?.value || '???'
+            console.log(`[SAVE] Scroll mode - index: ${position}, word: "${word}"`)
             break
           }
         }
       }
     }
     
-    // Save position (0 is valid - means start of text)
-    console.log(`[SAVE] Position: ${position}`)
+    console.log(`[SAVE] Saving position: ${position}`)
     updateReadingPositionRef.current(position)
   }, []) // Empty deps - stable function
   
@@ -191,7 +201,60 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [savePosition, onBack]) // savePosition is stable (empty deps)
   
   // ============================================
-  // MODE SWITCHING
+  // POSITION RESTORING (mount only for now)
+  // ============================================
+  
+  const restorePosition = useCallback((tokenIndex: number, targetMode: 'scroll' | 'page') => {
+    const tokens = tokensRef.current
+    const word = tokens[tokenIndex]?.value || '???'
+    console.log(`[RESTORE] index: ${tokenIndex}, word: "${word}", mode: ${targetMode}`)
+    
+    if (targetMode === 'page') {
+      paginationRef.current.goToTokenIndex(tokenIndex)
+    } else {
+      const container = scrollContainerRef.current
+      if (container) {
+        const wordElement = container.querySelector(`[data-word-index="${tokenIndex}"]`) as HTMLElement
+        if (wordElement) {
+          wordElement.scrollIntoView({ block: 'start', behavior: 'instant' })
+          console.log(`[RESTORE] Scrolled to word`)
+        } else {
+          console.log(`[RESTORE] Word element not found`)
+        }
+      } else {
+        console.log(`[RESTORE] Scroll container not found`)
+      }
+    }
+  }, [])
+  
+  // Restore position on mount (once per mount, after container is ready)
+  const hasRestoredRef = useRef(false)
+  useEffect(() => {
+    if (!currentText?.id) return
+    if (hasRestoredRef.current) return
+    
+    // Wait for container to have real dimensions (not defaults 500x800)
+    if (containerHeight === 500 && containerWidth === 800) {
+      console.log(`[RESTORE] Waiting for container dimensions...`)
+      return // Will re-run when dimensions update
+    }
+    
+    // Set flag IMMEDIATELY to prevent double execution
+    hasRestoredRef.current = true
+    
+    const tokenIndex = currentText.lastReadTokenIndex ?? 0
+    const mode = displayMode
+    
+    console.log(`[RESTORE] Mount - will restore to index ${tokenIndex} in ${mode} mode (container: ${containerWidth}x${containerHeight})`)
+    
+    // Wait for DOM to be ready
+    requestAnimationFrame(() => {
+      restorePosition(tokenIndex, mode)
+    })
+  }, [currentText?.id, currentText?.lastReadTokenIndex, displayMode, restorePosition, containerHeight, containerWidth])
+  
+  // ============================================
+  // MODE SWITCHING (save only, no restore yet)
   // ============================================
   
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
