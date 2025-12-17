@@ -226,18 +226,107 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [])
   
   // ============================================
-  // MODE SWITCHING (no position restore yet)
+  // POSITION TRACKING - RESTORE LOGIC
+  // ============================================
+  
+  // Track if we've done initial restore (prevent re-triggering)
+  const hasRestoredRef = useRef(false)
+  
+  // 8. Restore on mount (returning to reader)
+  useEffect(() => {
+    if (hasRestoredRef.current) return
+    if (!currentText?.lastReadTokenIndex || currentText.lastReadTokenIndex <= 0) return
+    
+    const savedToken = currentText.lastReadTokenIndex
+    
+    // Initialize ref with saved position
+    currentTokenRef.current = savedToken
+    
+    if (displayMode === 'page' && pagination.totalPages > 1) {
+      console.log(`[RESTORE] Page mode: going to token ${savedToken}`)
+      pagination.goToTokenIndex(savedToken)
+      hasRestoredRef.current = true
+    } else if (displayMode === 'scroll') {
+      const container = scrollContainerRef.current
+      if (container) {
+        setTimeout(() => {
+          const targetWord = container.querySelector(`[data-word-index="${savedToken}"]`) as HTMLElement
+          if (targetWord) {
+            targetWord.scrollIntoView({ block: 'start' })
+            console.log(`[RESTORE] Scroll mode: scrolled to token ${savedToken}`)
+            hasRestoredRef.current = true
+          }
+        }, 100)
+      }
+    }
+  }, [currentText?.lastReadTokenIndex, displayMode, pagination.totalPages, pagination.goToTokenIndex])
+  
+  // 9. Restore on resize (pagination changes)
+  const lastTotalPagesRef = useRef(pagination.totalPages)
+  useEffect(() => {
+    if (displayMode !== 'page') return
+    if (pagination.totalPages === lastTotalPagesRef.current) return
+    if (currentTokenRef.current <= 0) return
+    
+    console.log(`[RESTORE] Resize: pages changed ${lastTotalPagesRef.current} → ${pagination.totalPages}, restoring token ${currentTokenRef.current}`)
+    pagination.goToTokenIndex(currentTokenRef.current)
+    lastTotalPagesRef.current = pagination.totalPages
+  }, [displayMode, pagination.totalPages, pagination.goToTokenIndex])
+  
+  // 10. Restore on font size change
+  const lastFontSizeRef = useRef(fontSize)
+  useEffect(() => {
+    if (displayMode !== 'page') return
+    if (fontSize === lastFontSizeRef.current) return
+    if (currentTokenRef.current <= 0) return
+    
+    console.log(`[RESTORE] Font change: ${lastFontSizeRef.current}px → ${fontSize}px, restoring token ${currentTokenRef.current}`)
+    lastFontSizeRef.current = fontSize
+    // Wait for pagination to recalculate after font change
+    setTimeout(() => {
+      pagination.goToTokenIndex(currentTokenRef.current)
+    }, 50)
+  }, [displayMode, fontSize, pagination.goToTokenIndex])
+  
+  // ============================================
+  // MODE SWITCHING
   // ============================================
   
   const handleModeSwitch = useCallback((mode: 'scroll' | 'page') => {
     if (mode === displayMode) return
     
-    // Save current position immediately before switching
+    // Capture current position before switching
+    const tokenToRestore = displayMode === 'page' 
+      ? pagination.pageStartIndex 
+      : currentTokenRef.current
+    
+    console.log(`[MODE SWITCH] ${displayMode} → ${mode}, token ${tokenToRestore}`)
+    
+    // Save immediately
+    currentTokenRef.current = tokenToRestore
     saveToIndexedDB(true)
     
+    // Switch mode
     setDisplayMode(mode)
     storeDisplayMode(mode)
-  }, [displayMode, setDisplayMode, storeDisplayMode, saveToIndexedDB])
+    
+    // Restore in new mode
+    setTimeout(() => {
+      if (mode === 'page') {
+        console.log(`[MODE SWITCH] Restoring in page mode: token ${tokenToRestore}`)
+        pagination.goToTokenIndex(tokenToRestore)
+      } else if (mode === 'scroll' && scrollContainerRef.current) {
+        const container = scrollContainerRef.current
+        const targetWord = container.querySelector(`[data-word-index="${tokenToRestore}"]`) as HTMLElement
+        if (targetWord) {
+          targetWord.scrollIntoView({ block: 'start' })
+          console.log(`[MODE SWITCH] Restored in scroll mode: token ${tokenToRestore}`)
+        } else {
+          console.log(`[MODE SWITCH] Word not found for token ${tokenToRestore}`)
+        }
+      }
+    }, 100)
+  }, [displayMode, setDisplayMode, storeDisplayMode, saveToIndexedDB, pagination.pageStartIndex, pagination.goToTokenIndex])
   
   // Swipe gesture for page navigation on touch devices
   const swipeRef = useSwipeGesture<HTMLDivElement>({
