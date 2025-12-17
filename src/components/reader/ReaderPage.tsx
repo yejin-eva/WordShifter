@@ -152,6 +152,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // 3. Debounce timer ref
   const saveDebounceRef = useRef<NodeJS.Timeout | null>(null)
   
+  // 3b. Track if initial restore is complete (to avoid tracking overwriting saved position)
+  const hasRestoredRef = useRef(false)
+  
   // 4. Helper: save to IndexedDB (debounced or immediate)
   const saveToIndexedDB = useCallback((immediate = false) => {
     const token = currentTokenRef.current
@@ -179,13 +182,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   }, [])
   
   // 5. Track page changes (PAGE MODE)
+  // Skip until initial restore is done to avoid overwriting saved position
   useEffect(() => {
     if (displayMode !== 'page') return
+    if (!hasRestoredRef.current && currentText?.lastReadTokenIndex && currentText.lastReadTokenIndex > 0) {
+      // Still waiting for restore - don't track yet
+      return
+    }
     
     currentTokenRef.current = pagination.pageStartIndex
     console.log(`[TRACK] Page ${pagination.currentPage} → token ${pagination.pageStartIndex}`)
     saveToIndexedDB(false) // debounced
-  }, [displayMode, pagination.currentPage, pagination.pageStartIndex, saveToIndexedDB])
+  }, [displayMode, pagination.currentPage, pagination.pageStartIndex, saveToIndexedDB, currentText?.lastReadTokenIndex])
   
   // 6. Track scroll (SCROLL MODE)
   useEffect(() => {
@@ -194,6 +202,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     if (!container) return
     
     const handleScroll = () => {
+      // Skip tracking until initial restore is complete
+      if (!hasRestoredRef.current) return
+      
       const words = container.querySelectorAll('[data-word-index]')
       const containerRect = container.getBoundingClientRect()
       
@@ -229,13 +240,16 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
   // POSITION TRACKING - RESTORE LOGIC
   // ============================================
   
-  // Track if we've done initial restore (prevent re-triggering)
-  const hasRestoredRef = useRef(false)
-  
   // 8. Restore on mount (returning to reader)
   useEffect(() => {
     if (hasRestoredRef.current) return
-    if (!currentText?.lastReadTokenIndex || currentText.lastReadTokenIndex <= 0) return
+    
+    // If no position to restore, mark as restored so tracking can begin
+    if (!currentText?.lastReadTokenIndex || currentText.lastReadTokenIndex <= 0) {
+      hasRestoredRef.current = true
+      console.log(`[RESTORE] No saved position, starting fresh`)
+      return
+    }
     
     const savedToken = currentText.lastReadTokenIndex
     
@@ -247,17 +261,18 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       pagination.goToTokenIndex(savedToken)
       hasRestoredRef.current = true
     } else if (displayMode === 'scroll') {
-      const container = scrollContainerRef.current
-      if (container) {
-        setTimeout(() => {
-          const targetWord = container.querySelector(`[data-word-index="${savedToken}"]`) as HTMLElement
-          if (targetWord) {
-            targetWord.scrollIntoView({ block: 'start' })
-            console.log(`[RESTORE] Scroll mode: scrolled to token ${savedToken}`)
-            hasRestoredRef.current = true
-          }
-        }, 100)
-      }
+      // For scroll mode, wait a bit then scroll to the word
+      setTimeout(() => {
+        // Query from document since container might still be hidden
+        const targetWord = document.querySelector(`[data-word-index="${savedToken}"]`) as HTMLElement
+        if (targetWord) {
+          targetWord.scrollIntoView({ block: 'start' })
+          console.log(`[RESTORE] Scroll mode: scrolled to token ${savedToken}`)
+        } else {
+          console.log(`[RESTORE] Scroll mode: word not found for token ${savedToken}`)
+        }
+        hasRestoredRef.current = true
+      }, 150)
     }
   }, [currentText?.lastReadTokenIndex, displayMode, pagination.totalPages, pagination.goToTokenIndex])
   
@@ -310,14 +325,14 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setDisplayMode(mode)
     storeDisplayMode(mode)
     
-    // Restore in new mode
+    // Restore in new mode (need to wait for React to update DOM)
     setTimeout(() => {
       if (mode === 'page') {
         console.log(`[MODE SWITCH] Restoring in page mode: token ${tokenToRestore}`)
         pagination.goToTokenIndex(tokenToRestore)
-      } else if (mode === 'scroll' && scrollContainerRef.current) {
-        const container = scrollContainerRef.current
-        const targetWord = container.querySelector(`[data-word-index="${tokenToRestore}"]`) as HTMLElement
+      } else if (mode === 'scroll') {
+        // Query from document - the scroll container might not be directly accessible yet
+        const targetWord = document.querySelector(`[data-word-index="${tokenToRestore}"]`) as HTMLElement
         if (targetWord) {
           targetWord.scrollIntoView({ block: 'start' })
           console.log(`[MODE SWITCH] Restored in scroll mode: token ${tokenToRestore}`)
@@ -325,7 +340,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           console.log(`[MODE SWITCH] Word not found for token ${tokenToRestore}`)
         }
       }
-    }, 100)
+    }, 200) // Longer wait for DOM to update after mode switch
   }, [displayMode, setDisplayMode, storeDisplayMode, saveToIndexedDB, pagination.pageStartIndex, pagination.goToTokenIndex])
   
   // Swipe gesture for page navigation on touch devices
