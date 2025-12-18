@@ -14,15 +14,25 @@ class DictionaryService {
   private getKey(pair: LanguagePair): string {
     return `${pair.source}-${pair.target}`
   }
+
+  private getDictionaryUrl(key: string): string {
+    // In production on GitHub Pages we’re hosted under a base path (e.g. /WordShifter/).
+    // Never use an absolute "/dictionaries/..." URL because it will 404 on Pages.
+    let base = (import.meta as any).env?.BASE_URL as string | undefined
+    if (!base) base = '/'
+    if (!base.endsWith('/')) base += '/'
+    return `${base}dictionaries/${key}.json`
+  }
   
   async loadDictionary(pair: LanguagePair): Promise<void> {
     const key = this.getKey(pair)
     if (this.dictionaries.has(key)) return
     
     try {
-      const response = await fetch(`/dictionaries/${key}.json`)
+      const url = this.getDictionaryUrl(key)
+      const response = await fetch(url)
       if (!response.ok) {
-        console.warn(`Dictionary not found: ${key}.json`)
+        console.warn(`Dictionary not found: ${key}.json (${response.status}) @ ${response.url || url}`)
         this.dictionaries.set(key, new Map())
         return
       }

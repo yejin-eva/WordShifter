@@ -88,6 +88,20 @@ export function LLMProviderSettings() {
       const hasModel = models.some((m) => m === normalizedModel || m.startsWith(`${normalizedModel}:`))
       setOllamaCheck({ status: 'ok', models, hasModel })
     } catch (err: any) {
+      // On GitHub Pages we’re served over HTTPS. Browsers will block HTTP calls to localhost
+      // (mixed content), which shows up as a generic "Failed to fetch".
+      const isHttps = window.location.protocol === 'https:'
+      const isHttp = /^http:\/\//i.test(url)
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url)
+      if (isHttps && isHttp && isLocalhost) {
+        setOllamaCheck({
+          status: 'error',
+          message:
+            'This page is HTTPS (GitHub Pages). Browsers block HTTP calls to localhost, so the hosted app cannot reach Ollama at http://localhost:11434. Run WordShifter locally (npm run dev) OR expose Ollama over HTTPS (reverse proxy) and set that HTTPS URL here.',
+        })
+        return
+      }
+
       setOllamaCheck({
         status: 'error',
         message: err?.message || 'Could not connect to Ollama. Is it running?',
