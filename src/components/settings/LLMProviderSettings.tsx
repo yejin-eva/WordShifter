@@ -47,6 +47,23 @@ export function LLMProviderSettings() {
 
   const [ollamaCheck, setOllamaCheck] = useState<OllamaCheckState>({ status: 'idle' })
 
+  const modelPresets = useMemo(
+    () => [
+      'qwen2.5:7b',
+      'llama3.2',
+      'llama3.1:8b',
+      'mistral',
+      'phi3',
+    ],
+    []
+  )
+
+  const isPresetModel = useMemo(
+    () => modelPresets.includes(normalizeOllamaModelName(ollamaModel)),
+    [modelPresets, ollamaModel]
+  )
+  const modelSelectValue = isPresetModel ? normalizeOllamaModelName(ollamaModel) : 'custom'
+
   const normalizedModel = useMemo(() => normalizeOllamaModelName(ollamaModel), [ollamaModel])
 
   const checkOllama = useCallback(async () => {
@@ -125,12 +142,30 @@ export function LLMProviderSettings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Ollama model
               </label>
-              <input
-                value={ollamaModel}
-                onChange={(e) => setOllamaModel(e.target.value)}
+              <select
+                value={modelSelectValue}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v !== 'custom') setOllamaModel(v)
+                }}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                placeholder="qwen2.5:7b"
-              />
+              >
+                {modelPresets.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+                <option value="custom">Custom…</option>
+              </select>
+
+              {modelSelectValue === 'custom' && (
+                <input
+                  value={ollamaModel}
+                  onChange={(e) => setOllamaModel(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="Enter a model name (e.g. qwen2.5:7b)"
+                />
+              )}
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Recommended: <span className="font-mono">qwen2.5:7b</span>
               </p>
@@ -195,8 +230,8 @@ export function LLMProviderSettings() {
                 {' '}
                 (<a className="underline" href="https://ollama.com/download" target="_blank" rel="noreferrer">download</a>)
               </li>
-              <li>Run <span className="font-mono">ollama pull {normalizedModel}</span></li>
-              <li>Start the server: <span className="font-mono">ollama serve</span></li>
+              <li>In cmd, run: <span className="font-mono">ollama pull {normalizedModel}</span></li>
+              <li>Start the server in cmd: <span className="font-mono">ollama serve</span></li>
               <li>Come back here and click <span className="font-medium">Test Ollama</span></li>
             </ol>
           </div>
