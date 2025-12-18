@@ -223,7 +223,7 @@ async function processDictionary(key, config) {
  * Main function
  */
 async function main() {
-  console.log('Dictionary Downloader for WordShift');
+  console.log('Dictionary Downloader for WordShifter');
   console.log('====================================\n');
   
   const args = process.argv.slice(2);

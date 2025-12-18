@@ -1,4 +1,4 @@
-# WordShift - Agent Collaboration Guidelines
+# WordShifter - Agent Collaboration Guidelines
 
 > **Purpose**: This document defines how AI agents should work on this project. Follow these guidelines to ensure consistent, high-quality contributions that integrate well with the existing codebase.
 
@@ -65,7 +65,7 @@ Before implementing a feature, verify you understand:
 
 ### Core Concept
 
-WordShift is a **language learning reading aid**:
+WordShifter is a **language learning reading aid**:
 - Users upload text in one language
 - Text is pre-processed (all words translated)
 - Users read and click words to see translations

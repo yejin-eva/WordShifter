@@ -1,8 +1,8 @@
-# WordShift
+# WordShifter
 
 **Read naturally. Click to understand. Learn effortlessly.**
 
-WordShift is a language learning reading aid that lets you read authentic texts while instantly accessing translations with a single click. No more context-switching to dictionaries or translation tools.
+WordShifter is a language learning reading aid that lets you read authentic texts while instantly accessing translations with a single click. No more context-switching to dictionaries or translation tools.
 
 ---
 
@@ -40,8 +40,8 @@ WordShift is a language learning reading aid that lets you read authentic texts 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/wordshift.git
-cd wordshift
+git clone https://github.com/yourusername/wordshifter.git
+cd wordshifter
 
 # Install dependencies
 npm install

@@ -241,7 +241,7 @@ async function main() {
   const maxEntries = SIZE_LIMITS[sizeArg] || SIZE_LIMITS['medium'];
   
   console.log('===============================================');
-  console.log('WordShift Dictionary Downloader');
+  console.log('WordShifter Dictionary Downloader');
   console.log('===============================================');
   console.log(`Size: ${sizeArg} (max ${maxEntries} entries per dictionary)\n`);
   

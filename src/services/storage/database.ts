@@ -17,9 +17,12 @@ export interface StoredText {
 }
 
 /**
- * WordShift IndexedDB database
+ * WordShifter IndexedDB database
+ *
+ * Note: We keep the underlying DB name as "WordShiftDB" for backward compatibility
+ * so existing users don't lose stored texts/vocab/settings when we rename the app.
  */
-class WordShiftDatabase extends Dexie {
+class WordShifterDatabase extends Dexie {
   vocabulary!: Table<VocabularyEntry, string>
   texts!: Table<StoredText, string>
   
@@ -37,7 +40,7 @@ class WordShiftDatabase extends Dexie {
 }
 
 // Single database instance
-export const db = new WordShiftDatabase()
+export const db = new WordShifterDatabase()
 
 /**
  * Clear all data (for testing/debugging)

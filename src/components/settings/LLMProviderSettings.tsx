@@ -126,7 +126,7 @@ export function LLMProviderSettings() {
         </div>
 
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          WordShift is dictionary-first. LLMs are used for phrase translation and “Retry” on unknown words.
+          WordShifter is dictionary-first. LLMs are used for phrase translation and “Retry” on unknown words.
         </p>
       </div>
 
@@ -271,7 +271,7 @@ export function LLMProviderSettings() {
 
           <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 text-sm text-yellow-900 dark:text-yellow-200">
             OpenAI support is planned, but in the current web-only build it requires a small server/proxy
-            (to avoid browser CORS/key exposure). For now WordShift will keep using Ollama for LLM calls.
+            (to avoid browser CORS/key exposure). For now WordShifter will keep using Ollama for LLM calls.
           </div>
         </div>
       )}

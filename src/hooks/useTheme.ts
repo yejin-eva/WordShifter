@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'wordshift-theme'
+const STORAGE_KEY = 'wordshifter-theme'
+const LEGACY_STORAGE_KEY = 'wordshift-theme'
 
 /**
  * Hook for managing app-wide theme (dark/light mode)
@@ -15,7 +16,17 @@ export function useTheme() {
   // Get initial theme from localStorage or default to 'system'
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'system'
-    return (localStorage.getItem(STORAGE_KEY) as Theme) || 'system'
+    const current = localStorage.getItem(STORAGE_KEY) as Theme | null
+    if (current) return current
+
+    // Migrate from older key (WordShift -> WordShifter rename)
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY) as Theme | null
+    if (legacy) {
+      localStorage.setItem(STORAGE_KEY, legacy)
+      return legacy
+    }
+
+    return 'system'
   })
   
   // Compute the actual applied theme (resolves 'system' to light/dark)

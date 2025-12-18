@@ -1,6 +1,6 @@
-# WordShift - Development Guide
+# WordShifter - Development Guide
 
-> **Purpose**: This document provides setup instructions, development workflow, and technical reference for building WordShift. AI agents should follow these instructions when setting up or making changes to the project.
+> **Purpose**: This document provides setup instructions, development workflow, and technical reference for building WordShifter. AI agents should follow these instructions when setting up or making changes to the project.
 
 ---
 
@@ -225,7 +225,7 @@ git --version
 
 ```bash
 # 1. Navigate to project directory
-cd C:\Repositories\WordShift
+cd C:\Repositories\WordShifter
 
 # 2. Initialize the project (if not already done)
 npm create vite@latest . -- --template react-ts

@@ -1,6 +1,6 @@
-# WordShift - Project Planning Document
+# WordShifter - Project Planning Document
 
-> **Purpose**: This document serves as the single source of truth for the WordShift project. AI agents should read this document first before making any changes to the codebase.
+> **Purpose**: This document serves as the single source of truth for the WordShifter project. AI agents should read this document first before making any changes to the codebase.
 
 ---
 
@@ -19,9 +19,9 @@
 
 ## Project Overview
 
-### What is WordShift?
+### What is WordShifter?
 
-WordShift is a **language learning reading aid** that allows users to read text in one language while instantly accessing translations in another language. Unlike traditional dictionaries or translation tools, WordShift:
+WordShifter is a **language learning reading aid** that allows users to read text in one language while instantly accessing translations in another language. Unlike traditional dictionaries or translation tools, WordShifter:
 
 1. **Pre-processes** all text before reading (translations are ready instantly)
 2. **Preserves reading flow** with non-intrusive click-to-translate bubbles

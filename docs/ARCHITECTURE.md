@@ -1,4 +1,4 @@
-# WordShift - Architecture Document
+# WordShifter - Architecture Document
 
 > **Purpose**: This document describes the technical architecture, data structures, and component design. AI agents should reference this when implementing features or making technical decisions.
 
@@ -76,7 +76,7 @@
 ## Directory Structure
 
 ```
-wordshift/
+wordshifter/
 ├── public/                     # Static assets
 │   ├── favicon.ico
 │   └── fonts/
@@ -452,11 +452,12 @@ interface AppSettings {
 
 import Dexie, { Table } from 'dexie';
 
-class WordShiftDatabase extends Dexie {
+class WordShifterDatabase extends Dexie {
   texts!: Table<ProcessedText>;
   vocabulary!: Table<VocabularyEntry>;
 
   constructor() {
+    // Note: we keep the DB name as "WordShiftDB" for backward compatibility.
     super('WordShiftDB');
     
     this.version(1).stores({
@@ -466,7 +467,7 @@ class WordShiftDatabase extends Dexie {
   }
 }
 
-export const db = new WordShiftDatabase();
+export const db = new WordShifterDatabase();
 ```
 
 ---
