@@ -4,6 +4,8 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // GitHub Pages base path for https://yejin-eva.github.io/WordShifter/
+  base: '/WordShifter/',
   plugins: [react()],
   resolve: {
     alias: {
