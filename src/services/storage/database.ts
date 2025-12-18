@@ -17,28 +17,11 @@ export interface StoredText {
 }
 
 /**
- * Stored dictionary entry (cached for offline use)
- */
-export interface StoredDictionary {
-  /** Key: `${source}-${target}` */
-  key: string
-  sourceLanguage: string
-  targetLanguage: string
-  createdAt: Date
-  updatedAt: Date
-  /** Estimated number of entries */
-  entryCount: number
-  /** Raw dictionary JSON (stringified) */
-  data: string
-}
-
-/**
  * WordShift IndexedDB database
  */
 class WordShiftDatabase extends Dexie {
   vocabulary!: Table<VocabularyEntry, string>
   texts!: Table<StoredText, string>
-  dictionaries!: Table<StoredDictionary, string>
   
   constructor() {
     super('WordShiftDB')
@@ -49,13 +32,6 @@ class WordShiftDatabase extends Dexie {
       vocabulary: 'id, sourceLanguage, targetLanguage, textId, createdAt, [sourceLanguage+targetLanguage]',
       // Saved texts: indexed by id
       texts: 'id, sourceLanguage, targetLanguage, createdAt, updatedAt',
-    })
-
-    // Schema version 2: add dictionary cache
-    this.version(2).stores({
-      vocabulary: 'id, sourceLanguage, targetLanguage, textId, createdAt, [sourceLanguage+targetLanguage]',
-      texts: 'id, sourceLanguage, targetLanguage, createdAt, updatedAt',
-      dictionaries: 'key, sourceLanguage, targetLanguage, createdAt, updatedAt, [sourceLanguage+targetLanguage]',
     })
   }
 }
@@ -69,7 +45,6 @@ export const db = new WordShiftDatabase()
 export async function clearDatabase(): Promise<void> {
   await db.vocabulary.clear()
   await db.texts.clear()
-  await db.dictionaries.clear()
 }
 
 /**
@@ -78,13 +53,11 @@ export async function clearDatabase(): Promise<void> {
 export async function getDatabaseStats(): Promise<{
   vocabularyCount: number
   textsCount: number
-  dictionariesCount: number
 }> {
-  const [vocabularyCount, textsCount, dictionariesCount] = await Promise.all([
+  const [vocabularyCount, textsCount] = await Promise.all([
     db.vocabulary.count(),
     db.texts.count(),
-    db.dictionaries.count(),
   ])
-  return { vocabularyCount, textsCount, dictionariesCount }
+  return { vocabularyCount, textsCount }
 }
 

@@ -1,6 +1,5 @@
 import { HighlightColorPicker } from './HighlightColorPicker'
 import { LLMProviderSettings } from './LLMProviderSettings'
-import { DictionaryManagement } from './DictionaryManagement'
 
 interface SettingsPageProps {
   onBack: () => void
@@ -48,8 +47,10 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             Dictionaries
           </h2>
-
-          <DictionaryManagement />
+          
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Dictionary management coming soon...
+          </p>
         </section>
       </div>
     </div>
