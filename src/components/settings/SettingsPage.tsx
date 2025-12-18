@@ -1,4 +1,5 @@
 import { HighlightColorPicker } from './HighlightColorPicker'
+import { LLMProviderSettings } from './LLMProviderSettings'
 
 interface SettingsPageProps {
   onBack: () => void
@@ -37,10 +38,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             Translation
           </h2>
-          
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            LLM provider settings coming soon...
-          </p>
+
+          <LLMProviderSettings />
         </section>
         
         {/* Dictionaries Section - Placeholder */}

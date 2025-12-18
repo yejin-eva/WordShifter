@@ -4,6 +4,7 @@ import { extractWords } from '@/services/language/tokenizer'
 import { dictionaryService } from '@/services/dictionary'
 import { MockProvider } from './mockProvider'
 import { OllamaProvider } from './ollamaProvider'
+import { useSettingsStore } from '@/stores/useSettingsStore'
 
 /**
  * Main translation service that coordinates translation of text
@@ -123,9 +124,10 @@ export class TranslationService {
       case 'ollama':
         return new OllamaProvider(this.config.ollamaEndpoint, this.config.ollamaModel)
       case 'openai':
-        // TODO: Implement OpenAI provider
-        console.warn('OpenAI provider not yet implemented, falling back to mock')
-        return new MockProvider()
+        // NOTE: OpenAI in a pure browser app needs a proxy to avoid CORS + key exposure.
+        // We keep the user's preference stored, but fall back to Ollama for now.
+        console.warn('OpenAI provider is not enabled in the web-only build yet; falling back to Ollama')
+        return new OllamaProvider(this.config.ollamaEndpoint, this.config.ollamaModel)
       case 'mock':
       default:
         return new MockProvider()
@@ -135,10 +137,25 @@ export class TranslationService {
 
 // Singleton instance for easy access
 let translationService: TranslationService | null = null
+let lastConfigKey: string | null = null
+
+function configFromSettings(): Partial<TranslationConfig> {
+  const s = useSettingsStore.getState()
+  return {
+    provider: s.llmProvider,
+    ollamaEndpoint: s.ollamaUrl,
+    ollamaModel: s.ollamaModel,
+    openaiApiKey: s.openaiApiKey || undefined,
+  }
+}
 
 export function getTranslationService(config?: Partial<TranslationConfig>): TranslationService {
-  if (!translationService || config) {
-    translationService = new TranslationService(config)
+  const effectiveConfig = config ?? configFromSettings()
+  const key = JSON.stringify(effectiveConfig)
+
+  if (!translationService || lastConfigKey !== key) {
+    translationService = new TranslationService(effectiveConfig)
+    lastConfigKey = key
   }
   return translationService
 }
