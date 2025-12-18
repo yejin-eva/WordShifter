@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useVocabularyStore } from '@/stores/useVocabularyStore'
-import { VocabularyFilter, formatVocabularyList } from '@/types/vocabulary.types'
+import { formatVocabularyList } from '@/types/vocabulary.types'
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@/constants/languages'
 import { cn } from '@/utils/cn'
 
