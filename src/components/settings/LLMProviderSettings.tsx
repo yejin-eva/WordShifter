@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 
@@ -58,13 +58,20 @@ export function LLMProviderSettings() {
     []
   )
 
-  const isPresetModel = useMemo(
-    () => modelPresets.includes(normalizeOllamaModelName(ollamaModel)),
-    [modelPresets, ollamaModel]
-  )
-  const modelSelectValue = isPresetModel ? normalizeOllamaModelName(ollamaModel) : 'custom'
-
   const normalizedModel = useMemo(() => normalizeOllamaModelName(ollamaModel), [ollamaModel])
+
+  // Local UI choice state so selecting "Custom…" immediately reveals the input,
+  // even if the current model is a preset and hasn't changed yet.
+  const [modelChoice, setModelChoice] = useState<'preset' | 'custom'>(() =>
+    modelPresets.includes(normalizedModel) ? 'preset' : 'custom'
+  )
+
+  // Keep modelChoice in sync if settings change externally (e.g. rehydration)
+  useEffect(() => {
+    setModelChoice(modelPresets.includes(normalizedModel) ? 'preset' : 'custom')
+  }, [modelPresets, normalizedModel])
+
+  const modelSelectValue = modelChoice === 'custom' ? 'custom' : normalizedModel
 
   const checkOllama = useCallback(async () => {
     const url = ollamaUrl.replace(/\/$/, '')
@@ -146,7 +153,12 @@ export function LLMProviderSettings() {
                 value={modelSelectValue}
                 onChange={(e) => {
                   const v = e.target.value
-                  if (v !== 'custom') setOllamaModel(v)
+                  if (v === 'custom') {
+                    setModelChoice('custom')
+                    return
+                  }
+                  setModelChoice('preset')
+                  setOllamaModel(v)
                 }}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
               >
@@ -158,7 +170,7 @@ export function LLMProviderSettings() {
                 <option value="custom">Custom…</option>
               </select>
 
-              {modelSelectValue === 'custom' && (
+              {modelChoice === 'custom' && (
                 <input
                   value={ollamaModel}
                   onChange={(e) => setOllamaModel(e.target.value)}
