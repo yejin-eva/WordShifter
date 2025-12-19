@@ -8,6 +8,12 @@ type OllamaCheckState =
   | { status: 'ok'; models: string[]; hasModel: boolean }
   | { status: 'error'; message: string }
 
+type ApiCheckState =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'ok'; details?: string }
+  | { status: 'error'; message: string }
+
 function normalizeOllamaModelName(name: string): string {
   // Ollama tags often look like "qwen2.5:7b" or "qwen2.5:7b-instruct"
   return name.trim()
@@ -50,6 +56,7 @@ export function LLMProviderSettings() {
   } = useSettingsStore()
 
   const [ollamaCheck, setOllamaCheck] = useState<OllamaCheckState>({ status: 'idle' })
+  const [apiCheck, setApiCheck] = useState<ApiCheckState>({ status: 'idle' })
 
   const modelPresets = useMemo(
     () => [
@@ -99,6 +106,53 @@ export function LLMProviderSettings() {
     }
   }, [ollamaUrl, normalizedModel])
 
+  const checkApi = useCallback(async () => {
+    setApiCheck({ status: 'checking' })
+
+    const provider = apiProvider
+    const apiKey = provider === 'groq' ? groqApiKey : openaiApiKey
+
+    if (!apiKey || !apiKey.trim()) {
+      setApiCheck({ status: 'error', message: 'API key is missing' })
+      return
+    }
+
+    const endpoint =
+      provider === 'groq' ? 'https://api.groq.com/openai/v1/models' : 'https://api.openai.com/v1/models'
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: AbortSignal.timeout(4000),
+      })
+
+      if (!res.ok) {
+        setApiCheck({ status: 'error', message: `${provider.toUpperCase()} responded with ${res.status}` })
+        return
+      }
+
+      const data: any = await res.json().catch(() => null)
+      const count = Array.isArray(data?.data) ? data.data.length : undefined
+      setApiCheck({
+        status: 'ok',
+        details: typeof count === 'number' ? `${count} models visible` : 'Connected',
+      })
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to connect'
+      if (/failed to fetch/i.test(msg)) {
+        setApiCheck({
+          status: 'error',
+          message:
+            'Request failed (“Failed to fetch”). This is often blocked by browser CORS in hosted apps. If this happens, use Ollama or an API proxy endpoint.',
+        })
+        return
+      }
+      setApiCheck({ status: 'error', message: msg })
+    }
+  }, [apiProvider, groqApiKey, openaiApiKey])
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -332,6 +386,29 @@ export function LLMProviderSettings() {
               </p>
             </div>
           )}
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={checkApi}
+              disabled={apiCheck.status === 'checking'}
+              className="px-3 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm disabled:opacity-60"
+            >
+              {apiCheck.status === 'checking' ? 'Checking…' : 'Test API'}
+            </button>
+
+            {apiCheck.status === 'ok' && (
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-medium">Connection:</span> OK
+                {apiCheck.details ? <span className="text-gray-500 dark:text-gray-400"> — {apiCheck.details}</span> : null}
+              </div>
+            )}
+
+            {apiCheck.status === 'error' && (
+              <div className="text-sm text-red-600 dark:text-red-400">
+                {apiCheck.message}
+              </div>
+            )}
+          </div>
 
           <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 text-sm text-yellow-900 dark:text-yellow-200">
             Note: Some API providers block direct browser requests (CORS). If translations fail with “Failed to fetch”,
