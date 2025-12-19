@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo, useRef, useEffect } from 'react'
+import { useCallback, useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Token } from '@/types/text.types'
 import { TextDisplay } from './TextDisplay'
@@ -12,6 +12,7 @@ import { getTranslationService } from '@/services/translation/translationService
 import { LanguageCode } from '@/constants/languages'
 import { usePagination } from '@/hooks/usePagination'
 import { useSwipeGesture } from '@/hooks/useSwipeGesture'
+import { useSettingsStore } from '@/stores/useSettingsStore'
 
 interface ReaderPageProps {
   onBack: () => void
@@ -342,9 +343,24 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     onSwipeRight: pagination.prevPage,
     enabled: displayMode === 'page',
   })
-  
-  // Get translation service instance (stable)
-  const translationService = useMemo(() => getTranslationService(), [])
+
+  // Settings that affect which translation provider is used.
+  // We use these to keep the translation service in sync (so switching providers actually works).
+  const llmProvider = useSettingsStore((s) => s.llmProvider)
+  const apiProvider = useSettingsStore((s) => s.apiProvider)
+  const openaiApiKey = useSettingsStore((s) => s.openaiApiKey)
+  const groqApiKey = useSettingsStore((s) => s.groqApiKey)
+  const ollamaUrl = useSettingsStore((s) => s.ollamaUrl)
+  const ollamaModel = useSettingsStore((s) => s.ollamaModel)
+
+  const translationServiceRef = useRef(getTranslationService())
+  const [activeProviderLabel, setActiveProviderLabel] = useState(() => translationServiceRef.current.getProvider().name)
+
+  useEffect(() => {
+    const svc = getTranslationService()
+    translationServiceRef.current = svc
+    setActiveProviderLabel(svc.getProvider().name)
+  }, [llmProvider, apiProvider, openaiApiKey, groqApiKey, ollamaUrl, ollamaModel])
   
   // Retry state
   const [isRetrying, setIsRetrying] = useState(false)
@@ -434,10 +450,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
       }
     }
   }, []) // Empty deps = stable identity!
-  
-  // Store ref for phrase translation dependencies
-  const translationServiceRef = useRef(translationService)
-  useEffect(() => { translationServiceRef.current = translationService }, [translationService])
   
   // STABLE phrase click handler
   const handlePhraseClick = useCallback(async (tokens: Token[], element: HTMLSpanElement) => {
@@ -565,7 +577,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     setIsRetrying(true)
     
     try {
-      const result = await translationService.translateWord(
+      const result = await translationServiceRef.current.translateWord(
         selectedWord,
         currentText.originalContent.substring(0, 200),
         { 
@@ -582,7 +594,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     } finally {
       setIsRetrying(false)
     }
-  }, [selectedWord, currentText, translationService, updateTranslation])
+  }, [selectedWord, currentText, updateTranslation])
   
   if (!currentText) {
     return (
@@ -735,6 +747,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
           onRetry={handleRetryTranslation}
           onClose={handleClearSelection}
           isRetrying={isRetrying}
+          providerLabel={activeProviderLabel}
         />
       )}
       

@@ -58,6 +58,9 @@ export function LLMProviderSettings() {
   const [ollamaCheck, setOllamaCheck] = useState<OllamaCheckState>({ status: 'idle' })
   const [apiCheck, setApiCheck] = useState<ApiCheckState>({ status: 'idle' })
 
+  const activeProviderLabel =
+    llmProvider === 'ollama' ? 'Ollama (Local)' : `API → ${apiProvider === 'groq' ? 'Groq' : 'OpenAI'}`
+
   const modelPresets = useMemo(
     () => [
       'qwen2.5:7b',
@@ -185,6 +188,9 @@ export function LLMProviderSettings() {
 
         <p className="text-sm text-gray-500 dark:text-gray-400">
           WordShifter is dictionary-first. LLMs are used for phrase translation and “Retry” on unknown words.
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Active: <span className="font-medium text-gray-700 dark:text-gray-300">{activeProviderLabel}</span>
         </p>
       </div>
 
