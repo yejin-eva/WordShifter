@@ -1,0 +1,179 @@
+diff --git a/node_modules/@capacitor-community/http/android/build.gradle b/node_modules/@capacitor-community/http/android/build.gradle
+index 35ab45d..9d25b8a 100644
+--- a/node_modules/@capacitor-community/http/android/build.gradle
++++ b/node_modules/@capacitor-community/http/android/build.gradle
+@@ -17,6 +17,8 @@ buildscript {
+ apply plugin: 'com.android.library'
+ 
+ android {
++    // Required by modern Android Gradle Plugin (AGP 8+)
++    namespace "com.getcapacitor.plugin.http"
+     compileSdkVersion project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 29
+     defaultConfig {
+         minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 21
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/aar_metadata/debug/writeDebugAarMetadata/aar-metadata.properties b/node_modules/@capacitor-community/http/android/build/intermediates/aar_metadata/debug/writeDebugAarMetadata/aar-metadata.properties
+new file mode 100644
+index 0000000..1211b1e
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/aar_metadata/debug/writeDebugAarMetadata/aar-metadata.properties
+@@ -0,0 +1,6 @@
++aarFormatVersion=1.0
++aarMetadataVersion=1.0
++minCompileSdk=1
++minCompileSdkExtension=0
++minAndroidGradlePluginVersion=1.0.0
++coreLibraryDesugaringEnabled=false
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/annotation_processor_list/debug/javaPreCompileDebug/annotationProcessors.json b/node_modules/@capacitor-community/http/android/build/intermediates/annotation_processor_list/debug/javaPreCompileDebug/annotationProcessors.json
+new file mode 100644
+index 0000000..9e26dfe
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/annotation_processor_list/debug/javaPreCompileDebug/annotationProcessors.json
+@@ -0,0 +1 @@
++{}
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/compiled_local_resources/debug/compileDebugLibraryResources/out/layout_bridge_layout_main.xml.flat b/node_modules/@capacitor-community/http/android/build/intermediates/compiled_local_resources/debug/compileDebugLibraryResources/out/layout_bridge_layout_main.xml.flat
+new file mode 100644
+index 0000000..f7818a0
+Binary files /dev/null and b/node_modules/@capacitor-community/http/android/build/intermediates/compiled_local_resources/debug/compileDebugLibraryResources/out/layout_bridge_layout_main.xml.flat differ
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties b/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
+new file mode 100644
+index 0000000..d9e30f1
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
+@@ -0,0 +1,2 @@
++#Fri Dec 19 17:40:08 KST 2025
++com.getcapacitor.plugin.http.capacitor-community-http-main-6\:/layout/bridge_layout_main.xml=C\:\\Repositories\\WordShifter\\node_modules\\@capacitor-community\\http\\android\\build\\intermediates\\packaged_res\\debug\\packageDebugResources\\layout\\bridge_layout_main.xml
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/merged.dir/values/values.xml b/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/merged.dir/values/values.xml
+new file mode 100644
+index 0000000..e95bf66
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/merged.dir/values/values.xml
+@@ -0,0 +1,4 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="my_string">Just a simple string</string>
++</resources>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml b/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml
+new file mode 100644
+index 0000000..3f1a9cb
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\main\res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!&lt;dir>navigation"><source path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\main\res"><file name="bridge_layout_main" path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\main\res\layout\bridge_layout_main.xml" qualifiers="" type="layout"/><file path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\main\res\values\colors.xml" qualifiers=""/><file path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\main\res\values\strings.xml" qualifiers=""><string name="my_string">Just a simple string</string></file><file path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\main\res\values\styles.xml" qualifiers=""/></source></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\debug\res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug" generated-set="debug$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!&lt;dir>navigation"><source path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\src\debug\res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\build\generated\res\resValues\debug"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!&lt;dir>navigation"><source path="C:\Repositories\WordShifter\node_modules\@capacitor-community\http\android\build\generated\res\resValues\debug"/></dataSet><mergedItems/></merger>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/local_only_symbol_list/debug/parseDebugLocalResources/R-def.txt b/node_modules/@capacitor-community/http/android/build/intermediates/local_only_symbol_list/debug/parseDebugLocalResources/R-def.txt
+new file mode 100644
+index 0000000..80ec5cb
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/local_only_symbol_list/debug/parseDebugLocalResources/R-def.txt
+@@ -0,0 +1,5 @@
++R_DEF: Internal format may change without notice
++local
++id webview
++layout bridge_layout_main
++string my_string
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/navigation_json/debug/extractDeepLinksDebug/navigation.json b/node_modules/@capacitor-community/http/android/build/intermediates/navigation_json/debug/extractDeepLinksDebug/navigation.json
+new file mode 100644
+index 0000000..0637a08
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/navigation_json/debug/extractDeepLinksDebug/navigation.json
+@@ -0,0 +1 @@
++[]
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/nested_resources_validation_report/debug/generateDebugResources/nestedResourcesValidationReport.txt b/node_modules/@capacitor-community/http/android/build/intermediates/nested_resources_validation_report/debug/generateDebugResources/nestedResourcesValidationReport.txt
+new file mode 100644
+index 0000000..08f4ebe
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/nested_resources_validation_report/debug/generateDebugResources/nestedResourcesValidationReport.txt
+@@ -0,0 +1 @@
++0 Warning/Error
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/packaged_res/debug/packageDebugResources/layout/bridge_layout_main.xml b/node_modules/@capacitor-community/http/android/build/intermediates/packaged_res/debug/packageDebugResources/layout/bridge_layout_main.xml
+new file mode 100644
+index 0000000..56fec15
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/packaged_res/debug/packageDebugResources/layout/bridge_layout_main.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="utf-8"?>
++<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    tools:context="com.getcapacitor.BridgeActivity"
++    >
++
++    <WebView
++        android:id="@+id/webview"
++        android:layout_width="fill_parent"
++        android:layout_height="fill_parent" />
++
++</androidx.coordinatorlayout.widget.CoordinatorLayout>
+diff --git a/node_modules/@capacitor-community/http/android/build/intermediates/packaged_res/debug/packageDebugResources/values/values.xml b/node_modules/@capacitor-community/http/android/build/intermediates/packaged_res/debug/packageDebugResources/values/values.xml
+new file mode 100644
+index 0000000..e95bf66
+--- /dev/null
++++ b/node_modules/@capacitor-community/http/android/build/intermediates/packaged_res/debug/packageDebugResources/values/values.xml
+@@ -0,0 +1,4 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="my_string">Just a simple string</string>
++</resources>
+\ No newline at end of file
+diff --git a/node_modules/@capacitor-community/http/android/build/outputs/logs/manifest-merger-debug-report.txt b/node_modules/@capacitor-community/http/android/build/outputs/logs/manifest-merger-debug-report.txt
+deleted file mode 100644
+index 1a5087f..0000000
+--- a/node_modules/@capacitor-community/http/android/build/outputs/logs/manifest-merger-debug-report.txt
++++ /dev/null
+@@ -1,37 +0,0 @@
+--- Merging decision tree log ---
+-manifest
+-ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-	package
+-		ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:3:7-43
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-	android:versionName
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-	android:versionCode
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:3-4:14
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-	xmlns:android
+-		ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml:2:13-71
+-uses-sdk
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-	android:targetSdkVersion
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-	android:minSdkVersion
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		ADDED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+-		INJECTED from /Users/thomas/Documents/Ionic/code/http/android/src/main/AndroidManifest.xml
+diff --git a/node_modules/@capacitor-community/http/android/src/main/AndroidManifest.xml b/node_modules/@capacitor-community/http/android/src/main/AndroidManifest.xml
+index 5b7a8ba..9957c84 100644
+--- a/node_modules/@capacitor-community/http/android/src/main/AndroidManifest.xml
++++ b/node_modules/@capacitor-community/http/android/src/main/AndroidManifest.xml
+@@ -1,5 +1,4 @@
+ 
+-  <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-      package="com.getcapacitor.http.http">
++  <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+   </manifest>
+   
+\ No newline at end of file

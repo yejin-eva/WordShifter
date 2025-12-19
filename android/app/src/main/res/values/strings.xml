@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WordShifter</string>
+    <string name="title_activity_main">WordShifter</string>
+    <string name="package_name">com.wordshifter.app</string>
+    <string name="custom_url_scheme">com.wordshifter.app</string>
+</resources>

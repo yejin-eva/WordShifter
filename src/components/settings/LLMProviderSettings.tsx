@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { requestJson } from '@/services/http/httpClient'
 
 type ApiCheckState =
   | { status: 'idle' }
@@ -34,12 +35,11 @@ export function LLMProviderSettings() {
       provider === 'groq' ? 'https://api.groq.com/openai/v1/models' : 'https://api.openai.com/v1/models'
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await requestJson({
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-        signal: AbortSignal.timeout(4000),
+        url: endpoint,
+        headers: { Authorization: `Bearer ${apiKey}` },
+        timeoutMs: 8000,
       })
 
       if (!res.ok) {
@@ -47,7 +47,7 @@ export function LLMProviderSettings() {
         return
       }
 
-      const data: any = await res.json().catch(() => null)
+      const data: any = res.data ?? null
       const count = Array.isArray(data?.data) ? data.data.length : undefined
       setApiCheck({
         status: 'ok',
@@ -59,7 +59,7 @@ export function LLMProviderSettings() {
         setApiCheck({
           status: 'error',
           message:
-            'Request failed (“Failed to fetch”). This is often blocked by browser CORS in hosted apps. If this happens, use Ollama or an API proxy endpoint.',
+            'Request failed (“Failed to fetch”). This is often blocked by browser CORS in hosted apps. In the installed app (Capacitor), it should work. Otherwise use an API proxy endpoint (server-side).',
         })
         return
       }

@@ -15,9 +15,9 @@ The `app` branch is for a packaged, app-like distribution of WordShifter built f
 ### Must-have (MVP)
 
 - **Distribution**
-  - Target: **Installable PWA (install from browser)**.
-  - Supported: **Android + iOS** (Android-first testing).
-  - Provide a single “How to install” path for PWA install.
+  - Target: **Capacitor native wrapper** (install as a real Android app; iOS later).
+  - Supported: **Android first**; iOS requires a Mac for building/signing.
+  - Shareable artifact: **APK** (debug) / **AAB** (Play Store).
 - **Translation**
   - Settings shows **API providers only**: OpenAI + Groq.
   - API key storage is **local-only, on-device** (no server accounts; never sync keys).
@@ -47,9 +47,9 @@ The `app` branch is for a packaged, app-like distribution of WordShifter built f
 - **Language**: **TypeScript**
 - **UI framework**: **React**
 - **Build**: **Vite**
-- **Packaging**: **PWA-first**
+- **Packaging**: **Capacitor (native wrapper)**
 
-Rationale: fastest path to Android+iOS “app-like” experience without a rewrite; keeps one codebase and preserves existing parsing/storage/reader features.
+Rationale: fastest path to a **downloadable Android app** without a rewrite; keeps one codebase and preserves existing parsing/storage/reader features.
 
 ## Key decisions we need to make (before coding too much)
 
@@ -57,17 +57,14 @@ Rationale: fastest path to Android+iOS “app-like” experience without a rewri
 
 Pick one:
 
-- **Option A — Installable PWA (chosen)**
-  - Pros: easiest, fastest, one codebase, “web is basically desktop” aligns.
-  - Cons: app-store distribution is limited; file access can be constrained on iOS.
-- **Option B — Capacitor wrapper**
-  - Pros: real app-store distribution, better device integrations.
-  - Cons: more build complexity, platform setup, native plugins.
+- **Option A — Capacitor wrapper (chosen)**
+  - Pros: **real downloadable app** (APK/AAB), better device integrations, avoids browser CORS for API calls via native HTTP.
+  - Cons: more build complexity; iOS builds require a Mac (Xcode).
 
 ### 2) Supported platforms
 
-- **Both iOS + Android**, with Android-first testing.
-- PWA install on mobile first; desktop is optional but should keep working.
+- **Android first**, iOS later.
+- Desktop is optional; web build should keep working for development.
 
 ### 3) Offline expectations
 
@@ -86,6 +83,48 @@ If we want a “mostly offline” app later, we can explore on-device models, bu
 2. **Settings defaults / migrations**
    - Ensure fresh installs start with `llmProvider = 'api'`.
 3. **Docs**
-   - Add a simple `APP.md` install guide once packaging choice is decided.
+   - Add a simple `APP.md` install guide for building/running the Capacitor app.
+
+## How to build/run the Android app (Capacitor)
+
+### Prereqs
+
+- Install **Android Studio** + Android SDK (includes Gradle tooling).
+- Ensure you have a working Java JDK (Android Studio usually handles this).
+
+### Build + sync (web → native)
+
+```bash
+# 1) Build the web app into dist/
+npm run build
+
+# 2) Copy dist/ into the native project + sync plugins
+npx cap sync android
+```
+
+### Run on an Android device/emulator
+
+```bash
+npx cap open android
+```
+
+Then click **Run** in Android Studio.
+
+### Generate an APK you can share (debug)
+
+```bash
+cd android
+gradlew.bat assembleDebug
+```
+
+The APK will be at:
+
+- `android/app/build/outputs/apk/debug/app-debug.apk`
+
+### Notes
+
+- **API keys** are still stored locally on-device (inside the app’s WebView storage).
+- **LLM translation requires internet** (API calls).
+- iOS builds/signing require a Mac (Xcode). We can set it up, but Android is the fastest path from Windows.
 
 

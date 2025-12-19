@@ -1,5 +1,6 @@
 import { TranslationProvider, TranslationResult, LanguagePair } from '@/types/translation.types'
 import { getLanguageName } from '@/constants/languages'
+import { requestJson } from '@/services/http/httpClient'
 
 type ChatCompletionResponse = {
   choices?: Array<{
@@ -92,13 +93,14 @@ export class GroqProvider implements TranslationProvider {
     }
 
     try {
-      const res = await fetch(this.endpoint, {
+      const res = await requestJson({
         method: 'POST',
+        url: this.endpoint,
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
+        timeoutMs: 15000,
+        body: {
           model: this.model,
           messages: [
             {
@@ -109,15 +111,15 @@ export class GroqProvider implements TranslationProvider {
             { role: 'user', content: userPrompt },
           ],
           temperature: 0.2,
-        }),
+        },
       })
 
       if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        throw new Error(`Groq request failed: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`)
+        const extra = res.rawText ? ` - ${res.rawText}` : ''
+        throw new Error(`Groq request failed: ${res.status}${extra}`)
       }
 
-      const data = (await res.json()) as ChatCompletionResponse
+      const data = res.data as ChatCompletionResponse
       return data.choices?.[0]?.message?.content?.trim() || ''
     } catch (err) {
       const hint = maybeFriendlyCorsHint(this.endpoint, err)
