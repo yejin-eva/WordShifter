@@ -276,11 +276,24 @@ export function LLMProviderSettings() {
             </div>
           )}
 
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-700 dark:text-gray-300">
+            <div className="font-medium mb-2">Ollama setup (Windows)</div>
+            <ol className="list-decimal ml-5 space-y-1">
+              <li>
+                Install Ollama{' '}
+                (<a className="underline" href="https://ollama.com/download" target="_blank" rel="noreferrer">download</a>)
+              </li>
+              <li>
+                In cmd, run: <span className="font-mono">ollama pull {normalizedModel}</span>
+              </li>
+            </ol>
+          </div>
+
           <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 p-4 text-sm text-blue-900 dark:text-blue-200">
             <div className="font-medium mb-2">Hosted WordShifter (GitHub Pages) + local Ollama</div>
             <p className="mb-3 text-blue-900/90 dark:text-blue-200/90">
-              If you opened WordShifter from GitHub Pages (HTTPS), your browser will block calls to
-              <span className="font-mono"> http://localhost:11434</span>. Use an HTTPS tunnel to your local Ollama instead.
+              If you opened WordShifter from GitHub Pages (HTTPS), your browser will block calls to{' '}
+              <span className="font-mono">http://localhost:11434</span>. Use an HTTPS tunnel to your local Ollama instead.
             </p>
 
             <ol className="list-decimal ml-5 space-y-2">
@@ -349,8 +362,16 @@ export function LLMProviderSettings() {
               <li>
                 <div className="font-medium">Paste the HTTPS URL here</div>
                 <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
-                  Copy the <span className="font-mono">https://....trycloudflare.com</span> URL, click <span className="font-medium">Paste</span>{' '}
-                  above, then click <span className="font-medium">Test Ollama</span>.
+                  Copy the <span className="font-mono">https://....trycloudflare.com</span> URL, click{' '}
+                  <span className="font-medium">Paste</span> above, then click{' '}
+                  <span className="font-medium">Test Ollama</span>.
+                </div>
+              </li>
+
+              <li>
+                <div className="font-medium">Come back here and test Ollama</div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  After the tunnel is running and you’ve pasted the HTTPS URL, click <span className="font-medium">Test Ollama</span>.
                 </div>
               </li>
             </ol>
@@ -359,20 +380,6 @@ export function LLMProviderSettings() {
               Security note: a <span className="font-mono">trycloudflare.com</span> URL exposes your local Ollama to anyone with the link.
               Don’t share it, and close the tunnel when you’re done.
             </div>
-          </div>
-
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-700 dark:text-gray-300">
-            <div className="font-medium mb-2">Ollama setup (Windows)</div>
-            <ol className="list-decimal ml-5 space-y-1">
-              <li>
-                Install Ollama
-                {' '}
-                (<a className="underline" href="https://ollama.com/download" target="_blank" rel="noreferrer">download</a>)
-              </li>
-              <li>In cmd, run: <span className="font-mono">ollama pull {normalizedModel}</span></li>
-              <li>Start the server in cmd: <span className="font-mono">ollama serve</span></li>
-              <li>Come back here and click <span className="font-medium">Test Ollama</span></li>
-            </ol>
           </div>
         </div>
       )}
