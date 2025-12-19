@@ -15,16 +15,24 @@ The `app` branch is for a packaged, app-like distribution of WordShifter built f
 ### Must-have (MVP)
 
 - **Distribution**
-  - Decide target: **Installable PWA** (fastest) vs **native wrapper** (Capacitor/React Native).
-  - Provide a single “How to install” path for the chosen target.
+  - Target: **Installable PWA (install from browser)**.
+  - Supported: **Android + iOS** (Android-first testing).
+  - Provide a single “How to install” path for PWA install.
 - **Translation**
   - Settings shows **API providers only**: OpenAI + Groq.
-  - API key storage is **local-only** (no server accounts).
+  - API key storage is **local-only, on-device** (no server accounts; never sync keys).
   - “Test API” remains available.
   - Clear “Active provider” indicator.
 - **Reader + vocabulary**
   - Same core experience as web: upload → process → read → click → save vocab.
   - Keep all data local (IndexedDB).
+- **Offline**
+  - **Saved books are available offline** (stored locally via IndexedDB).
+  - **Dictionaries work offline** (bundled/cached).
+  - **LLM translation requires internet** (API calls).
+- **Documents**
+  - **PDF + EPUB must work well on mobile MVP**.
+  - PDF: prioritize **good text extraction** first; layout-preserving view is a follow-up if needed.
 
 ### Nice-to-have (post-MVP)
 
@@ -34,13 +42,22 @@ The `app` branch is for a packaged, app-like distribution of WordShifter built f
   - Import text from share sheet (mobile).
   - Export vocabulary as file (not just clipboard).
 
+## Stack decision (locked in)
+
+- **Language**: **TypeScript**
+- **UI framework**: **React**
+- **Build**: **Vite**
+- **Packaging**: **PWA-first**
+
+Rationale: fastest path to Android+iOS “app-like” experience without a rewrite; keeps one codebase and preserves existing parsing/storage/reader features.
+
 ## Key decisions we need to make (before coding too much)
 
 ### 1) Packaging choice
 
 Pick one:
 
-- **Option A — Installable PWA (recommended to start)**
+- **Option A — Installable PWA (chosen)**
   - Pros: easiest, fastest, one codebase, “web is basically desktop” aligns.
   - Cons: app-store distribution is limited; file access can be constrained on iOS.
 - **Option B — Capacitor wrapper**
@@ -49,8 +66,8 @@ Pick one:
 
 ### 2) Supported platforms
 
-- iOS only? Android only? both?
-- Or “PWA install on mobile + desktop” first?
+- **Both iOS + Android**, with Android-first testing.
+- PWA install on mobile first; desktop is optional but should keep working.
 
 ### 3) Offline expectations
 
