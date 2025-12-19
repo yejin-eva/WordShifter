@@ -175,7 +175,7 @@ export function LLMProviderSettings() {
                   value={ollamaUrl}
                   onChange={(e) => setOllamaUrl(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                  placeholder="http://localhost:11434"
+                  placeholder="https://...trycloudflare.com"
                 />
                 <button
                   onClick={pasteOllamaUrlFromClipboard}
@@ -348,12 +348,6 @@ export function LLMProviderSettings() {
               <li>
                 <div className="font-medium">Start the WordShifter proxy (this repo)</div>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => copyText('npm run ollama:proxy')}
-                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
-                  >
-                    Copy: npm run ollama:proxy
-                  </button>
                   <button
                     onClick={() =>
                       copyText(
