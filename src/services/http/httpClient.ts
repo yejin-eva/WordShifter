@@ -30,14 +30,22 @@ export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
 
   if (isNative()) {
     // Native HTTP (bypasses browser CORS).
-    const res = await Http.request({
+    // Important: avoid passing undefined/null fields to the native plugin.
+    // Some plugin/AGP combos can crash (NullPointerException) if optional fields are present but null.
+    const options: any = {
       method,
       url,
       headers,
-      data: body,
-      connectTimeout: timeoutMs,
-      readTimeout: timeoutMs,
-    })
+    }
+    if (typeof timeoutMs === 'number') {
+      options.connectTimeout = timeoutMs
+      options.readTimeout = timeoutMs
+    }
+    if (body !== undefined) {
+      options.data = body
+    }
+
+    const res = await Http.request(options)
 
     // Plugin returns `data` already parsed if JSON; `status` is number.
     const status = typeof res.status === 'number' ? res.status : 0
