@@ -10,6 +10,7 @@ interface TranslationBubbleProps {
   onRetry?: () => void
   onClose: () => void
   isRetrying?: boolean
+  providerLabel?: string
 }
 
 export function TranslationBubble({
@@ -21,6 +22,7 @@ export function TranslationBubble({
   onRetry,
   onClose,
   isRetrying = false,
+  providerLabel,
 }: TranslationBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
   
@@ -82,6 +84,13 @@ export function TranslationBubble({
           ({partOfSpeech})
         </span>
       )}
+
+      {/* Provider indicator (useful for debugging which backend is actually being used) */}
+      {providerLabel && !isRetrying && (
+        <span className="text-gray-400 dark:text-gray-500 text-xs whitespace-nowrap">
+          via {providerLabel}
+        </span>
+      )}
       
       {/* Save button */}
       <button
@@ -111,7 +120,7 @@ export function TranslationBubble({
             'hover:scale-110 transition-all',
             isRetrying ? 'opacity-50 cursor-not-allowed animate-spin' : 'hover:text-orange-600'
           )}
-          title="Retry translation"
+          title={providerLabel ? `Retry translation (using ${providerLabel})` : 'Retry translation'}
         >
           🔄
         </button>
