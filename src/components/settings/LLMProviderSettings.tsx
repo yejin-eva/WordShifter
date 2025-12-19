@@ -284,7 +284,16 @@ export function LLMProviderSettings() {
                 (<a className="underline" href="https://ollama.com/download" target="_blank" rel="noreferrer">download</a>)
               </li>
               <li>
-                In cmd, run: <span className="font-mono">ollama pull {normalizedModel}</span>
+                <div>In cmd, run:</div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="font-mono">ollama pull {normalizedModel}</span>
+                  <button
+                    onClick={() => copyText(`ollama pull ${normalizedModel}`)}
+                    className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Copy
+                  </button>
+                </div>
               </li>
             </ol>
           </div>
@@ -304,7 +313,7 @@ export function LLMProviderSettings() {
                     onClick={() => copyText('winget install --id Cloudflare.cloudflared -e')}
                     className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
                   >
-                    Copy (Windows): winget install
+                    Copy (Windows, optional): winget install
                   </button>
                   <a
                     className="underline text-xs"
