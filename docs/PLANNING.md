@@ -428,7 +428,7 @@ For each unique word in text:
 | P2 | Reading position auto-save | ✅ Complete |
 | P3 | Dark mode | ✅ Complete |
 | P3 | Font size control (per-text) | ✅ Complete |
-| P3 | Settings page | 🔲 In Progress |
+| P3 | Settings page | ✅ Complete (MVP) |
 
 ### Phase 2: Desktop Application
 **Target**: Electron or Tauri wrapper for desktop
@@ -684,8 +684,8 @@ For each unique word in text:
 1. Settings page accessible from header navigation (⚙️)
 2. User can choose highlight color from 5 presets
 3. Highlight color persists across sessions
-4. User can toggle between Ollama and OpenAI
-5. User can input OpenAI API key (stored securely in localStorage)
+4. User can toggle between Ollama and OpenAI (OpenAI requires a proxy in web-only build)
+5. User can input OpenAI API key (stored locally in localStorage)
 6. User can see which dictionaries are downloaded
 7. User can download new dictionaries on-demand
 8. User can delete dictionaries to free space
@@ -733,6 +733,7 @@ For each unique word in text:
 
 | Date | Author | Changes |
 |------|--------|---------|
+| 2025-12-19 | Agent | Improved GitHub Pages hosted Ollama setup (cloudflared tunnel + user-friendly in-app instructions, no-repo Windows proxy helper) |
 | 2024-12-16 | Agent | Marked Milestone 5 complete, added Milestone 6 (Settings Page) |
 | 2024-12-16 | Agent | Added Settings page plan: highlight colors, LLM provider, dictionary management |
 | 2024-12-16 | Agent | Updated dictionary sizes to reflect actual data (218K ru-en, etc.) |

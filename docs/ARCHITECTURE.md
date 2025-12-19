@@ -110,8 +110,8 @@ wordshifter/
 │   │   │
 │   │   ├── settings/           # Settings page components
 │   │   │   ├── SettingsPage.tsx
-│   │   │   ├── ApiKeyInput.tsx
-│   │   │   └── ThemeToggle.tsx
+│   │   │   ├── HighlightColorPicker.tsx
+│   │   │   └── LLMProviderSettings.tsx
 │   │   │
 │   │   └── layout/             # Layout components
 │   │       ├── Header.tsx
@@ -129,8 +129,8 @@ wordshifter/
 │   │   │   ├── index.ts
 │   │   │   ├── translationService.ts
 │   │   │   ├── ollamaProvider.ts
-│   │   │   ├── openaiProvider.ts
-│   │   │   └── translationCache.ts
+│   │   │   ├── mockProvider.ts
+│   │   │   └── translationService.test.ts
 │   │   │
 │   │   ├── language/
 │   │   │   ├── index.ts
@@ -214,7 +214,6 @@ App
 │       │   ├── TextPasteArea
 │       │   ├── LanguageSelector (source - auto-detected)
 │       │   ├── LanguageSelector (target - user selects)
-│       │   ├── ProcessingModeToggle (Full / Dynamic)
 │       │   ├── ProcessButton
 │       │   └── ProcessingProgress
 │       │
@@ -239,11 +238,8 @@ App
 │       │       └── TextItem (×n)
 │       │
 │       └── SettingsPage
-│           ├── TranslationSourceSelector
-│           ├── ApiKeyInput
-│           ├── ThemeToggle
-│           ├── FontSizeSlider
-│           └── StorageManager
+│           ├── HighlightColorPicker
+│           └── LLMProviderSettings
 ```
 
 ### Key Component Specifications
@@ -963,6 +959,7 @@ public/
 2. Converted to Map for O(1) lookup
 3. Cached in memory for session duration
 4. ~2-5MB per language pair (acceptable for web)
+5. On GitHub Pages, dictionary URLs must respect the app base path (use Vite `BASE_URL`, not absolute `/dictionaries/...`)
 
 ---
 
@@ -971,6 +968,17 @@ public/
 Used ONLY for:
 1. Unknown words (when user clicks 🔄 retry)
 2. Phrase translation (future feature)
+
+#### Hosted web caveat (GitHub Pages)
+
+GitHub Pages serves WordShifter over **HTTPS**. Browsers will block requests from the hosted page to
+`http://localhost:11434` (mixed content) and enforce CORS.
+
+**Supported workaround (hosted UI + local Ollama):**
+- Run Ollama locally
+- Run a local CORS proxy (see `scripts/ollama-cors-proxy.ps1` for Windows)
+- Expose the proxy via an HTTPS tunnel (e.g. Cloudflare `cloudflared`)
+- Paste the resulting `https://...trycloudflare.com` URL into Settings → Ollama URL
 
 ```typescript
 // Configuration

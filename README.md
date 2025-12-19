@@ -40,8 +40,8 @@ WordShifter is a language learning reading aid that lets you read authentic text
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/wordshifter.git
-cd wordshifter
+git clone https://github.com/yejin-eva/WordShifter.git
+cd WordShifter
 
 # Install dependencies
 npm install
@@ -85,7 +85,7 @@ ollama list
 ## 🏗️ Project Structure
 
 ```
-wordshift/
+WordShifter/
 ├── docs/                    # 📚 Documentation
 │   ├── PLANNING.md         # Project roadmap & features
 │   ├── ARCHITECTURE.md     # Technical design
@@ -140,11 +140,11 @@ This project is designed for seamless AI agent collaboration. Before making chan
 
 | Feature | Status |
 |---------|--------|
-| File Upload | 🔲 Not Started |
-| Language Selection | 🔲 Not Started |
-| Text Processing | 🔲 Not Started |
-| Interactive Reader | 🔲 Not Started |
-| Vocabulary Lists | 🔲 Not Started |
+| File Upload | ✅ Complete |
+| Language Selection | ✅ Complete |
+| Text Processing | ✅ Complete |
+| Interactive Reader | ✅ Complete |
+| Vocabulary Lists | ✅ Complete |
 
 See `docs/PLANNING.md` for the complete roadmap.
 

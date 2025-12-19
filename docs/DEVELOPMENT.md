@@ -530,7 +530,7 @@ const isPdfEnabled = import.meta.env.VITE_ENABLE_PDF === 'true';
 |---------|-------------|
 | `npm run clean` | Remove build artifacts |
 | `npm run deps:check` | Check for outdated dependencies |
-| `npm run ollama:proxy` | Run a local CORS proxy in front of Ollama (useful for GitHub Pages hosted UI) |
+| `npm run ollama:proxy` | Run a local CORS proxy in front of Ollama (useful for GitHub Pages hosted UI; devs only) |
 
 ### Package.json Scripts
 
@@ -629,13 +629,22 @@ If you open WordShifter from GitHub Pages (HTTPS), the browser will block reques
 ollama serve
 ```
 
-2. Run the WordShifter CORS proxy (this repo):
+2. Run the WordShifter CORS proxy:
+
+**Option A (recommended for normal users on Windows; no repo needed):**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -UseBasicParsing https://raw.githubusercontent.com/yejin-eva/WordShifter/web/scripts/ollama-cors-proxy.ps1 | iex"
+```
+
+**Option B (developers; requires this repo):**
 
 ```powershell
 npm run ollama:proxy
 ```
 
 3. Expose the proxy over HTTPS using a tunnel (example with Cloudflare Tunnel):
+   - If you installed via `winget`, **close and reopen your terminal** before `cloudflared` is recognized.
    - Start a tunnel to the proxy port and copy the generated `https://...trycloudflare.com` URL.
    - In WordShifter Settings → Ollama URL, paste that HTTPS URL.
 
