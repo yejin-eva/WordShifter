@@ -27,10 +27,17 @@ function isNative(): boolean {
 
 export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
   const { method, url, headers, body, timeoutMs } = req
-  const safeHeaders = headers ?? {}
+  const safeHeaders = { ...(headers ?? {}) }
   const safeParams: Record<string, any> = {}
 
   if (isNative()) {
+    // Ensure JSON requests are sent as JSON.
+    // Without Content-Type, some APIs (and/or native HTTP layers) may send an empty/invalid body.
+    if (body !== undefined) {
+      const hasContentType = Object.keys(safeHeaders).some((k) => k.toLowerCase() === 'content-type')
+      if (!hasContentType) safeHeaders['Content-Type'] = 'application/json'
+    }
+
     // Native HTTP (bypasses browser CORS).
     // Important: avoid passing undefined/null fields to the native plugin.
     // Some plugin/AGP combos can crash (NullPointerException) if optional fields are present but null.
