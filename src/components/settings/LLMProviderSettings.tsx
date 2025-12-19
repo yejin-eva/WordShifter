@@ -276,6 +276,91 @@ export function LLMProviderSettings() {
             </div>
           )}
 
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 p-4 text-sm text-blue-900 dark:text-blue-200">
+            <div className="font-medium mb-2">Hosted WordShifter (GitHub Pages) + local Ollama</div>
+            <p className="mb-3 text-blue-900/90 dark:text-blue-200/90">
+              If you opened WordShifter from GitHub Pages (HTTPS), your browser will block calls to
+              <span className="font-mono"> http://localhost:11434</span>. Use an HTTPS tunnel to your local Ollama instead.
+            </p>
+
+            <ol className="list-decimal ml-5 space-y-2">
+              <li>
+                <div className="font-medium">Install Cloudflare Tunnel (cloudflared)</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => copyText('winget install --id Cloudflare.cloudflared -e')}
+                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
+                  >
+                    Copy (Windows): winget install
+                  </button>
+                  <a
+                    className="underline text-xs"
+                    href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Manual download (all OS)
+                  </a>
+                </div>
+              </li>
+
+              <li>
+                <div className="font-medium">Start Ollama</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => copyText('ollama serve')}
+                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
+                  >
+                    Copy: ollama serve
+                  </button>
+                </div>
+              </li>
+
+              <li>
+                <div className="font-medium">Start the WordShifter proxy (this repo)</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => copyText('npm run ollama:proxy')}
+                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
+                  >
+                    Copy: npm run ollama:proxy
+                  </button>
+                </div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  Default proxy URL: <span className="font-mono">http://localhost:8787</span> (or use a different port if it’s in use).
+                </div>
+              </li>
+
+              <li>
+                <div className="font-medium">Start an HTTPS tunnel to the proxy</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => copyText('cloudflared tunnel --url http://localhost:8787')}
+                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
+                  >
+                    Copy: cloudflared tunnel
+                  </button>
+                </div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  Cloudflared will print an <span className="font-mono">https://....trycloudflare.com</span> URL.
+                </div>
+              </li>
+
+              <li>
+                <div className="font-medium">Paste the HTTPS URL here</div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  Copy the <span className="font-mono">https://....trycloudflare.com</span> URL, click <span className="font-medium">Paste</span>{' '}
+                  above, then click <span className="font-medium">Test Ollama</span>.
+                </div>
+              </li>
+            </ol>
+
+            <div className="mt-3 text-xs text-blue-900/80 dark:text-blue-200/80">
+              Security note: a <span className="font-mono">trycloudflare.com</span> URL exposes your local Ollama to anyone with the link.
+              Don’t share it, and close the tunnel when you’re done.
+            </div>
+          </div>
+
           <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-700 dark:text-gray-300">
             <div className="font-medium mb-2">Ollama setup (Windows)</div>
             <ol className="list-decimal ml-5 space-y-1">
