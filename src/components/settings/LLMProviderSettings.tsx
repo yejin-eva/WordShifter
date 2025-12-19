@@ -324,6 +324,10 @@ export function LLMProviderSettings() {
                     Manual download (all OS)
                   </a>
                 </div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  If you install via <span className="font-mono">winget</span>, you usually need to <span className="font-medium">close and reopen your terminal</span>{' '}
+                  before <span className="font-mono">cloudflared</span> is recognized.
+                </div>
               </li>
 
               <li>
@@ -335,6 +339,9 @@ export function LLMProviderSettings() {
                   >
                     Copy: ollama serve
                   </button>
+                </div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  If this errors with “port 11434 already in use”, Ollama is already running — you can skip this step.
                 </div>
               </li>
 
@@ -362,9 +369,19 @@ export function LLMProviderSettings() {
                   >
                     Copy: cloudflared tunnel
                   </button>
+                  <button
+                    onClick={() => copyText('%LOCALAPPDATA%\\Microsoft\\WinGet\\Links\\cloudflared.exe tunnel --url http://localhost:8787')}
+                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
+                    title="Fallback if cloudflared isn't on PATH yet (after winget install)"
+                  >
+                    Copy: tunnel (fallback path)
+                  </button>
                 </div>
                 <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
                   Cloudflared will print an <span className="font-mono">https://....trycloudflare.com</span> URL.
+                </div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  If you see “cloudflared is not recognized”, close/reopen your terminal, or use the fallback command above.
                 </div>
               </li>
 
