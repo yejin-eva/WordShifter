@@ -530,6 +530,7 @@ const isPdfEnabled = import.meta.env.VITE_ENABLE_PDF === 'true';
 |---------|-------------|
 | `npm run clean` | Remove build artifacts |
 | `npm run deps:check` | Check for outdated dependencies |
+| `npm run ollama:proxy` | Run a local CORS proxy in front of Ollama (useful for GitHub Pages hosted UI) |
 
 ### Package.json Scripts
 
@@ -614,6 +615,31 @@ curl http://localhost:11434/api/tags
 # 4. Pull a model if none available
 ollama pull llama3.2
 ```
+
+#### Issue: Ollama doesn’t work on GitHub Pages (HTTPS)
+
+If you open WordShifter from GitHub Pages (HTTPS), the browser will block requests to:
+`http://localhost:11434` (mixed content) and may also block due to CORS.
+
+**Recommended approach (hosted UI + local Ollama):**
+
+1. Run Ollama:
+
+```powershell
+ollama serve
+```
+
+2. Run the WordShifter CORS proxy (this repo):
+
+```powershell
+npm run ollama:proxy
+```
+
+3. Expose the proxy over HTTPS using a tunnel (example with Cloudflare Tunnel):
+   - Start a tunnel to the proxy port and copy the generated `https://...trycloudflare.com` URL.
+   - In WordShifter Settings → Ollama URL, paste that HTTPS URL.
+
+This keeps the UI hosted while the model runs on your machine.
 
 ### Performance Issues
 

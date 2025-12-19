@@ -109,6 +109,25 @@ export function LLMProviderSettings() {
     }
   }, [ollamaUrl, normalizedModel])
 
+  const pasteOllamaUrlFromClipboard = useCallback(async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim()
+      if (!text) {
+        toast.error('Clipboard is empty')
+        return
+      }
+      if (!/^https?:\/\//i.test(text)) {
+        toast.error('Clipboard does not look like a URL')
+        return
+      }
+      const sanitized = text.replace(/\/$/, '')
+      setOllamaUrl(sanitized)
+      toast.success('Pasted Ollama URL')
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not read clipboard')
+    }
+  }, [setOllamaUrl])
+
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -151,12 +170,21 @@ export function LLMProviderSettings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Ollama URL
               </label>
-              <input
-                value={ollamaUrl}
-                onChange={(e) => setOllamaUrl(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                placeholder="http://localhost:11434"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={ollamaUrl}
+                  onChange={(e) => setOllamaUrl(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="http://localhost:11434"
+                />
+                <button
+                  onClick={pasteOllamaUrlFromClipboard}
+                  className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap"
+                  title="Paste an HTTPS tunnel URL (e.g. trycloudflare.com)"
+                >
+                  Paste
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
