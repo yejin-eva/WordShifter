@@ -354,9 +354,23 @@ export function LLMProviderSettings() {
                   >
                     Copy: npm run ollama:proxy
                   </button>
+                  <button
+                    onClick={() =>
+                      copyText(
+                        'powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -UseBasicParsing https://raw.githubusercontent.com/yejin-eva/WordShifter/web/scripts/ollama-cors-proxy.ps1 | iex"'
+                      )
+                    }
+                    className="px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-xs hover:bg-blue-100 dark:hover:bg-blue-900"
+                    title="Windows (no repo): downloads + runs the proxy script"
+                  >
+                    Copy (Windows): run proxy (no repo)
+                  </button>
                 </div>
                 <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
                   Default proxy URL: <span className="font-mono">http://localhost:8787</span> (or use a different port if it’s in use).
+                </div>
+                <div className="mt-1 text-xs text-blue-900/80 dark:text-blue-200/80">
+                  Regular users won’t have the WordShifter repo; on Windows use the “no repo” command above.
                 </div>
               </li>
 
