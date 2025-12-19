@@ -37,12 +37,16 @@ export function LLMProviderSettings() {
   const {
     llmProvider,
     setLLMProvider,
+    apiProvider,
+    setApiProvider,
     ollamaUrl,
     setOllamaUrl,
     ollamaModel,
     setOllamaModel,
     openaiApiKey,
     setOpenAIApiKey,
+    groqApiKey,
+    setGroqApiKey,
   } = useSettingsStore()
 
   const [ollamaCheck, setOllamaCheck] = useState<OllamaCheckState>({ status: 'idle' })
@@ -114,14 +118,14 @@ export function LLMProviderSettings() {
             Ollama (Local)
           </button>
           <button
-            onClick={() => setLLMProvider('openai')}
+            onClick={() => setLLMProvider('api')}
             className={`px-3 py-2 text-sm transition-colors ${
-              llmProvider === 'openai'
+              llmProvider === 'api'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
-            OpenAI (API)
+            API
           </button>
         </div>
 
@@ -250,28 +254,88 @@ export function LLMProviderSettings() {
         </div>
       )}
 
-      {llmProvider === 'openai' && (
+      {llmProvider === 'api' && (
         <div className="space-y-3">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              OpenAI API key
-            </label>
-            <input
-              type="password"
-              value={openaiApiKey}
-              onChange={(e) => setOpenAIApiKey(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-              placeholder="sk-…"
-              autoComplete="off"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Stored locally in your browser (localStorage). Don’t use this on a shared computer.
-            </p>
+          <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button
+              onClick={() => setApiProvider('openai')}
+              className={`px-3 py-2 text-sm transition-colors ${
+                apiProvider === 'openai'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              OpenAI
+            </button>
+            <button
+              onClick={() => setApiProvider('groq')}
+              className={`px-3 py-2 text-sm transition-colors ${
+                apiProvider === 'groq'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              Groq
+            </button>
           </div>
 
+          {apiProvider === 'openai' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                OpenAI API key{' '}
+                <a
+                  className="text-xs underline font-normal"
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  (create one if you don’t have any)
+                </a>
+              </label>
+              <input
+                type="password"
+                value={openaiApiKey}
+                onChange={(e) => setOpenAIApiKey(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                placeholder="sk-…"
+                autoComplete="off"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Stored locally in your browser (localStorage). Don’t use this on a shared computer.
+              </p>
+            </div>
+          )}
+
+          {apiProvider === 'groq' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Groq API key{' '}
+                <a
+                  className="text-xs underline font-normal"
+                  href="https://console.groq.com/keys"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  (create one if you don’t have any)
+                </a>
+              </label>
+              <input
+                type="password"
+                value={groqApiKey}
+                onChange={(e) => setGroqApiKey(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                placeholder="gsk_…"
+                autoComplete="off"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Stored locally in your browser (localStorage). Don’t use this on a shared computer.
+              </p>
+            </div>
+          )}
+
           <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 text-sm text-yellow-900 dark:text-yellow-200">
-            OpenAI support is planned, but in the current web-only build it requires a small server/proxy
-            (to avoid browser CORS/key exposure). For now WordShifter will keep using Ollama for LLM calls.
+            Note: Some API providers block direct browser requests (CORS). If translations fail with “Failed to fetch”,
+            you may need to use a proxy endpoint, or use Ollama.
           </div>
         </div>
       )}

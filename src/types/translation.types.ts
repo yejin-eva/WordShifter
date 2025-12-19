@@ -50,10 +50,11 @@ export interface TranslationProvider {
  * Configuration for translation service
  */
 export interface TranslationConfig {
-  provider: 'mock' | 'ollama' | 'openai'
+  provider: 'mock' | 'ollama' | 'openai' | 'groq'
   ollamaEndpoint: string
   ollamaModel: string
   openaiApiKey?: string
+  groqApiKey?: string
 }
 
 /**
