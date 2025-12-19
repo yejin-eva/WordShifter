@@ -4,6 +4,8 @@ import { extractWords } from '@/services/language/tokenizer'
 import { dictionaryService } from '@/services/dictionary'
 import { MockProvider } from './mockProvider'
 import { OllamaProvider } from './ollamaProvider'
+import { OpenAIProvider } from './openaiProvider'
+import { GroqProvider } from './groqProvider'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 
 /**
@@ -124,10 +126,9 @@ export class TranslationService {
       case 'ollama':
         return new OllamaProvider(this.config.ollamaEndpoint, this.config.ollamaModel)
       case 'openai':
-        // NOTE: OpenAI in a pure browser app needs a proxy to avoid CORS + key exposure.
-        // We keep the user's preference stored, but fall back to Ollama for now.
-        console.warn('OpenAI provider is not enabled in the web-only build yet; falling back to Ollama')
-        return new OllamaProvider(this.config.ollamaEndpoint, this.config.ollamaModel)
+        return new OpenAIProvider(this.config.openaiApiKey || '')
+      case 'groq':
+        return new GroqProvider(this.config.groqApiKey || '')
       case 'mock':
       default:
         return new MockProvider()
@@ -141,11 +142,22 @@ let lastConfigKey: string | null = null
 
 function configFromSettings(): Partial<TranslationConfig> {
   const s = useSettingsStore.getState()
+
+  // Settings use a top-level "ollama vs api" toggle.
+  // TranslationService expects the concrete provider name.
+  const provider: TranslationConfig['provider'] =
+    s.llmProvider === 'ollama'
+      ? 'ollama'
+      : s.apiProvider === 'groq'
+        ? 'groq'
+        : 'openai'
+
   return {
-    provider: s.llmProvider,
+    provider,
     ollamaEndpoint: s.ollamaUrl,
     ollamaModel: s.ollamaModel,
     openaiApiKey: s.openaiApiKey || undefined,
+    groqApiKey: s.groqApiKey || undefined,
   }
 }
 
