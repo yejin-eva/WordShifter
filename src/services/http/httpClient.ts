@@ -28,6 +28,7 @@ function isNative(): boolean {
 export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
   const { method, url, headers, body, timeoutMs } = req
   const safeHeaders = headers ?? {}
+  const safeParams: Record<string, any> = {}
 
   if (isNative()) {
     // Native HTTP (bypasses browser CORS).
@@ -37,6 +38,9 @@ export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
       method,
       url,
       headers: safeHeaders,
+      // Plugin bug: it calls headers/params keys() without null-checking.
+      // Always provide params to avoid NullPointerException.
+      params: safeParams,
     }
     if (typeof timeoutMs === 'number') {
       options.connectTimeout = timeoutMs
