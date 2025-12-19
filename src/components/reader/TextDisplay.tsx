@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, memo, useMemo, useEffect } from 'react'
+import { useCallback, useRef, memo, useMemo, useEffect } from 'react'
 import { ProcessedText, Token } from '@/types/text.types'
 import { WordSpan } from './WordSpan'
 import { useUIStore } from '@/stores/useUIStore'
@@ -30,9 +30,6 @@ export const TextDisplay = memo(function TextDisplay({
   const dragStartRef = useRef<number | null>(null)
   const dragEndRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  
-  // For phrase selection UI update during drag
-  const [, forceUpdate] = useState(0)
   
   // Store all callbacks in refs for stable handlers
   const onWordClickRef = useRef(onWordClick)

@@ -17,7 +17,7 @@ export class OllamaProvider implements TranslationProvider {
   
   async translateWord(
     word: string, 
-    context: string, 
+    _context: string, 
     pair: LanguagePair
   ): Promise<TranslationResult> {
     const sourceLang = getLanguageName(pair.source)
@@ -76,8 +76,11 @@ run → 달리다|verb`,
   ): Promise<TranslationResult> {
     const sourceLang = getLanguageName(pair.source)
     const targetLang = getLanguageName(pair.target)
+    const example = this.getPhraseExampleForPair(pair)
     
-    const prompt = `Translate to ${targetLang}. Reply with translation only.
+    const prompt = `Translate from ${sourceLang} to ${targetLang}. Reply with translation only.
+
+"${example.split('→')[0].trim()}" = ${example.split('→')[1].trim()}
 
 "${phrase}" =`
 

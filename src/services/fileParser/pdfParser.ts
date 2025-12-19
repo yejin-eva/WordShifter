@@ -1,7 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist'
 
 // Set up the worker using the bundled worker from node_modules
-// @ts-expect-error - worker import
 import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 pdfjsLib.GlobalWorkerOptions.workerSrc = PdfWorker
 
