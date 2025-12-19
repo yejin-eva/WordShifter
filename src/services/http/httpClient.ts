@@ -27,6 +27,7 @@ function isNative(): boolean {
 
 export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
   const { method, url, headers, body, timeoutMs } = req
+  const safeHeaders = headers ?? {}
 
   if (isNative()) {
     // Native HTTP (bypasses browser CORS).
@@ -35,7 +36,7 @@ export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
     const options: any = {
       method,
       url,
-      headers,
+      headers: safeHeaders,
     }
     if (typeof timeoutMs === 'number') {
       options.connectTimeout = timeoutMs
@@ -64,7 +65,7 @@ export async function requestJson(req: JsonRequest): Promise<JsonResponse> {
     const res = await fetch(url, {
       method,
       headers: {
-        ...(headers ?? {}),
+        ...safeHeaders,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
