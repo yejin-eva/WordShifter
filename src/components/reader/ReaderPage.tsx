@@ -699,24 +699,6 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
             onPhraseClick={handlePhraseClick}
           />
         </div>
-        
-        {/* Tap zones for page navigation */}
-        <div 
-          className="absolute left-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation()
-            pagination.prevPage()
-          }}
-          title="Previous page"
-        />
-        <div 
-          className="absolute right-0 top-0 bottom-0 w-16 cursor-pointer opacity-0 hover:opacity-10 hover:bg-gray-500 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation()
-            pagination.nextPage()
-          }}
-          title="Next page"
-        />
         </div>
       </div>
       
