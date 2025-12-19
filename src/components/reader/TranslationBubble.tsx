@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/utils/cn'
 
 interface TranslationBubbleProps {
@@ -25,6 +25,7 @@ export function TranslationBubble({
   providerLabel,
 }: TranslationBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
+  const [bubbleRect, setBubbleRect] = useState<DOMRect | null>(null)
   
   // Close on click outside (but not when clicking another word)
   useEffect(() => {
@@ -55,11 +56,66 @@ export function TranslationBubble({
       document.removeEventListener('click', handleClickOutside)
     }
   }, [onClose])
+
+  // Measure the bubble so we can keep it within the viewport on small screens.
+  useEffect(() => {
+    const el = bubbleRef.current
+    if (!el) return
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect()
+      setBubbleRect(rect)
+    }
+
+    // Measure after paint so layout is stable.
+    const raf = requestAnimationFrame(measure)
+
+    // Re-measure on resize/orientation changes.
+    window.addEventListener('resize', measure)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', measure)
+    }
+  }, [translation, partOfSpeech, isRetrying, providerLabel, placement, position.x, position.y])
+
+  const layout = useMemo(() => {
+    const viewportW = typeof window !== 'undefined' ? window.innerWidth : 0
+    const viewportH = typeof window !== 'undefined' ? window.innerHeight : 0
+    const padding = 10 // keep away from edges
+
+    // Fallback: if we haven't measured yet, keep legacy behavior.
+    if (!bubbleRect || viewportW === 0 || viewportH === 0) {
+      return {
+        left: position.x,
+        arrowLeft: undefined as number | undefined,
+      }
+    }
+
+    // Bubble center is at `left` (because we keep translateX(-50%)). Clamp it so the bubble stays visible.
+    const halfW = bubbleRect.width / 2
+    const minCenter = padding + halfW
+    const maxCenter = viewportW - padding - halfW
+    const clampedCenter = Math.min(Math.max(position.x, minCenter), maxCenter)
+
+    // Arrow should still point toward the tapped word. Clamp inside bubble padding too.
+    // Compute arrow x relative to bubble left edge.
+    const bubbleLeft = clampedCenter - halfW
+    const arrowPadding = 14 // keep arrow away from rounded corners
+    const desiredArrow = position.x - bubbleLeft
+    const arrowLeft = Math.min(Math.max(desiredArrow, arrowPadding), bubbleRect.width - arrowPadding)
+
+    // If bubble is fully clamped, arrow will shift; that's expected on small screens.
+    return {
+      left: clampedCenter,
+      arrowLeft,
+      viewportH,
+    }
+  }, [bubbleRect, position.x])
   
   // Calculate position to center bubble above/below word
   const style: React.CSSProperties = {
     position: 'fixed',
-    left: position.x,
+    left: layout.left,
     transform: 'translateX(-50%)',
     ...(placement === 'above' 
       ? { bottom: `calc(100vh - ${position.y}px + 12px)` }
@@ -129,13 +185,14 @@ export function TranslationBubble({
       {/* Arrow pointing to word */}
       <div 
         className={cn(
-          'absolute left-1/2 -translate-x-1/2 w-0 h-0',
+          'absolute w-0 h-0',
           'border-l-[8px] border-l-transparent',
           'border-r-[8px] border-r-transparent',
           placement === 'above' 
             ? '-bottom-2 border-t-[8px] border-t-white dark:border-t-gray-700'
             : '-top-2 border-b-[8px] border-b-white dark:border-b-gray-700'
         )}
+        style={layout.arrowLeft !== undefined ? { left: layout.arrowLeft, transform: 'translateX(-50%)' } : undefined}
       />
     </div>
   )
