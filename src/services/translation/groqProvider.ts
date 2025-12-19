@@ -98,6 +98,8 @@ export class GroqProvider implements TranslationProvider {
         url: this.endpoint,
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
         },
         timeoutMs: 15000,
         body: {
