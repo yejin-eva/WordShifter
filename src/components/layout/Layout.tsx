@@ -14,6 +14,7 @@ export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutPro
   
   // Get the highlight color value
   const highlightColorValue = HIGHLIGHT_COLORS[highlightColor].value
+  const isReader = currentPage === 'reader'
   
   return (
     <div 
@@ -21,7 +22,11 @@ export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutPro
       style={{ '--highlight-color': highlightColorValue } as React.CSSProperties}
     >
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
+      <header
+        className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0"
+        // Prevent the header from overlapping the device status bar (Android/iOS safe area).
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => onNavigate?.('home')}
@@ -76,8 +81,9 @@ export function Layout({ children, onNavigate, currentPage = 'home' }: LayoutPro
       </header>
 
       {/* Main Content - flex-1 to fill remaining height */}
-      <main className="flex-1 overflow-hidden">
-        <div className="max-w-5xl mx-auto px-4 py-8 h-full flex flex-col">
+      {/* Non-reader pages should be scrollable (upload preview, settings, etc.) */}
+      <main className={`flex-1 ${isReader ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <div className={`max-w-5xl mx-auto px-4 py-8 ${isReader ? 'h-full flex flex-col' : ''}`}>
           {children}
         </div>
       </main>

@@ -97,6 +97,33 @@ export function UploadPage({ onProcess }: UploadPageProps) {
             sourceLanguage={sourceLanguage}
           />
 
+          {/* Process button (kept close to the language controls) */}
+          <div className="pt-2">
+            <button
+              onClick={handleProcess}
+              disabled={!canProcess}
+              className={`
+                w-full px-6 py-3 rounded-lg font-medium transition-colors
+                ${canProcess
+                  ? 'bg-primary text-white hover:bg-primary-hover'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                }
+              `}
+            >
+              Process Text
+            </button>
+
+            {!canProcess && (
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                {!selectedFile
+                  ? 'Upload a file to continue'
+                  : !targetLanguage
+                    ? 'Select a target language'
+                    : ''
+                }
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -118,34 +145,6 @@ export function UploadPage({ onProcess }: UploadPageProps) {
           <TextPreview text={fileContent} fileName={selectedFile.name} />
         </div>
       )}
-
-      {/* Process button */}
-      <div className="mt-8 text-center">
-        <button
-          onClick={handleProcess}
-          disabled={!canProcess}
-          className={`
-            px-8 py-3 rounded-lg font-medium transition-colors
-            ${canProcess
-              ? 'bg-primary text-white hover:bg-primary-hover'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-            }
-          `}
-        >
-          Process Text
-        </button>
-        
-        {!canProcess && (
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {!selectedFile 
-              ? 'Upload a file to continue'
-              : !targetLanguage 
-                ? 'Select a target language'
-                : ''
-            }
-          </p>
-        )}
-      </div>
     </div>
   )
 }
