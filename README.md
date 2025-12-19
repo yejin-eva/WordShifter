@@ -64,18 +64,6 @@ This repo is organized so core functionality lives in `main`, and platform-speci
 
 WordShifter supports **OpenAI** and **Groq** as LLM providers. Add your key in **Settings → Translation** and use **Test API** to validate it.
 
-### Optional: Local AI Setup (Ollama)
-
-For free, offline translations, install [Ollama](https://ollama.ai):
-
-```bash
-# Install a translation-capable model
-ollama pull llama3.2
-
-# Verify it's running
-ollama list
-```
-
 ---
 
 ## 📖 How It Works

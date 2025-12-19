@@ -346,12 +346,9 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
 
   // Settings that affect which translation provider is used.
   // We use these to keep the translation service in sync (so switching providers actually works).
-  const llmProvider = useSettingsStore((s) => s.llmProvider)
   const apiProvider = useSettingsStore((s) => s.apiProvider)
   const openaiApiKey = useSettingsStore((s) => s.openaiApiKey)
   const groqApiKey = useSettingsStore((s) => s.groqApiKey)
-  const ollamaUrl = useSettingsStore((s) => s.ollamaUrl)
-  const ollamaModel = useSettingsStore((s) => s.ollamaModel)
 
   const translationServiceRef = useRef(getTranslationService())
   const [activeProviderLabel, setActiveProviderLabel] = useState(() => translationServiceRef.current.getProvider().name)
@@ -360,7 +357,7 @@ export function ReaderPage({ onBack }: ReaderPageProps) {
     const svc = getTranslationService()
     translationServiceRef.current = svc
     setActiveProviderLabel(svc.getProvider().name)
-  }, [llmProvider, apiProvider, openaiApiKey, groqApiKey, ollamaUrl, ollamaModel])
+  }, [apiProvider, openaiApiKey, groqApiKey])
   
   // Retry state
   const [isRetrying, setIsRetrying] = useState(false)

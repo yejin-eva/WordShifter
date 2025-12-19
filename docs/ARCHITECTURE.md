@@ -1022,37 +1022,6 @@ function parseTranslationResponse(response: string): { translation: string; part
     partOfSpeech: partOfSpeech || 'unknown'
   };
 }
-
-// Ollama availability check with user guidance
-async function checkOllamaWithGuidance(): Promise<{ available: boolean; instructions?: string }> {
-  const available = await checkOllamaAvailable();
-  
-  if (!available) {
-    return {
-      available: false,
-      instructions: `
-Ollama is not running. To start Ollama:
-
-**Windows:**
-1. Open Start Menu, search for "Ollama"
-2. Click to launch (runs in system tray)
-3. Or open PowerShell and run: ollama serve
-
-**Mac:**
-1. Open Terminal
-2. Run: ollama serve
-
-**Linux:**
-1. Open Terminal
-2. Run: ollama serve
-
-After starting, click "Retry" to check connection.
-      `.trim()
-    };
-  }
-  
-  return { available: true };
-}
 ```
 
 ### OpenAI / Groq Integration (API Providers)
@@ -1073,7 +1042,7 @@ Examples:
 
 Respond with ONLY the translation|partOfSpeech, nothing else.`;
 
-// API call structure (uses same format as Ollama)
+// API call structure (uses the same translation|partOfSpeech format)
 async function translateWithOpenAI(
   word: string,
   context: string,

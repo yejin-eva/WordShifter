@@ -3,10 +3,10 @@ import { TranslationService } from './translationService'
 import { tokenize } from '@/services/language/tokenizer'
 
 describe('TranslationService', () => {
-  it('uses ollama provider by default', () => {
+  it('uses OpenAI provider by default', () => {
     const service = new TranslationService()
     
-    expect(service.getProvider().name).toBe('Ollama (Local)')
+    expect(service.getProvider().name).toBe('OpenAI (API)')
   })
 
   it('can use mock provider when specified', () => {

@@ -3,7 +3,6 @@ import { Token, WordTranslation } from '@/types/text.types'
 import { extractWords } from '@/services/language/tokenizer'
 import { dictionaryService } from '@/services/dictionary'
 import { MockProvider } from './mockProvider'
-import { OllamaProvider } from './ollamaProvider'
 import { OpenAIProvider } from './openaiProvider'
 import { GroqProvider } from './groqProvider'
 import { useSettingsStore } from '@/stores/useSettingsStore'
@@ -123,8 +122,6 @@ export class TranslationService {
   
   private createProvider(): TranslationProvider {
     switch (this.config.provider) {
-      case 'ollama':
-        return new OllamaProvider(this.config.ollamaEndpoint, this.config.ollamaModel)
       case 'openai':
         return new OpenAIProvider(this.config.openaiApiKey || '')
       case 'groq':
@@ -143,19 +140,10 @@ let lastConfigKey: string | null = null
 function configFromSettings(): Partial<TranslationConfig> {
   const s = useSettingsStore.getState()
 
-  // Settings use a top-level "ollama vs api" toggle.
-  // TranslationService expects the concrete provider name.
-  const provider: TranslationConfig['provider'] =
-    s.llmProvider === 'ollama'
-      ? 'ollama'
-      : s.apiProvider === 'groq'
-        ? 'groq'
-        : 'openai'
+  const provider: TranslationConfig['provider'] = s.apiProvider === 'groq' ? 'groq' : 'openai'
 
   return {
     provider,
-    ollamaEndpoint: s.ollamaUrl,
-    ollamaModel: s.ollamaModel,
     openaiApiKey: s.openaiApiKey || undefined,
     groqApiKey: s.groqApiKey || undefined,
   }

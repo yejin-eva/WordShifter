@@ -50,20 +50,15 @@ export interface TranslationProvider {
  * Configuration for translation service
  */
 export interface TranslationConfig {
-  provider: 'mock' | 'ollama' | 'openai' | 'groq'
-  ollamaEndpoint: string
-  ollamaModel: string
+  provider: 'mock' | 'openai' | 'groq'
   openaiApiKey?: string
   groqApiKey?: string
 }
 
 /**
  * Default configuration
- * Using Qwen2.5 (7B) for best multilingual translation quality
  */
 export const DEFAULT_TRANSLATION_CONFIG: TranslationConfig = {
-  provider: 'ollama',
-  ollamaEndpoint: 'http://localhost:11434',
-  ollamaModel: 'qwen2.5:7b',  // Best for multilingual (ru/ko/en)
+  provider: 'openai',
 }
 
