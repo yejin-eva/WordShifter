@@ -71,6 +71,11 @@
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
+**Platform note**
+- `main` contains the core app and provider integrations.
+- `web` is the GitHub Pages hosted variant (deployment/base-path specifics).
+- `app` will be a packaged “app” variant (planned to be API-only).
+
 ---
 
 ## Directory Structure
@@ -110,8 +115,9 @@ wordshifter/
 │   │   │
 │   │   ├── settings/           # Settings page components
 │   │   │   ├── SettingsPage.tsx
-│   │   │   ├── ApiKeyInput.tsx
-│   │   │   └── ThemeToggle.tsx
+│   │   │   ├── LLMProviderSettings.tsx
+│   │   │   ├── HighlightColorPicker.tsx
+│   │   │   └── DictionaryManager.tsx
 │   │   │
 │   │   └── layout/             # Layout components
 │   │       ├── Header.tsx
@@ -130,6 +136,7 @@ wordshifter/
 │   │   │   ├── translationService.ts
 │   │   │   ├── ollamaProvider.ts
 │   │   │   ├── openaiProvider.ts
+│   │   │   ├── groqProvider.ts
 │   │   │   └── translationCache.ts
 │   │   │
 │   │   ├── language/
@@ -1048,14 +1055,11 @@ After starting, click "Retry" to check connection.
 }
 ```
 
-### OpenAI Integration
+### OpenAI / Groq Integration (API Providers)
 
 ```typescript
 // Configuration
-const OPENAI_CONFIG = {
-  endpoint: 'https://api.openai.com/v1/chat/completions',
-  model: 'gpt-4o-mini',     // Cost-effective for simple translations
-};
+WordShifter supports OpenAI and Groq as API providers. Users provide their own API key in **Settings → Translation**.
 
 // System prompt for consistent format
 const OPENAI_SYSTEM_PROMPT = `You are a translator. 

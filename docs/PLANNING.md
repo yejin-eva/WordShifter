@@ -408,8 +408,8 @@ For each unique word in text:
 
 ## Development Phases
 
-### Phase 1: Web Application (MVP)
-**Target**: Fully functional web app with core features
+### Phase 1: Core App (in `main`) ✅ COMPLETED
+**Target**: Core reading + translation + vocabulary features, provider-agnostic (dictionary-first + LLM fallback)
 
 | Priority | Feature | Status |
 |----------|---------|--------|
@@ -420,7 +420,7 @@ For each unique word in text:
 | P1 | Vocabulary saving | ✅ Complete |
 | P1 | PDF support | ✅ Complete |
 | P1 | EPUB support | ✅ Complete |
-| P2 | Local model support (Ollama) | ✅ Complete |
+| P2 | Local model support (Ollama) | ✅ Complete (optional) |
 | P2 | Phrase selection translation | ✅ Complete |
 | P2 | Vocabulary views (per-text, per-language, total) | ✅ Complete |
 | P2 | Saved texts management | ✅ Complete |
@@ -428,26 +428,17 @@ For each unique word in text:
 | P2 | Reading position auto-save | ✅ Complete |
 | P3 | Dark mode | ✅ Complete |
 | P3 | Font size control (per-text) | ✅ Complete |
-| P3 | Settings page | 🔲 In Progress |
+| P3 | Settings page | ✅ Complete |
+| P3 | API providers (OpenAI + Groq) + Test API | ✅ Complete |
 
-### Phase 2: Desktop Application
-**Target**: Electron or Tauri wrapper for desktop
+### Phase 2: Platform Branches (ongoing)
 
-| Priority | Feature | Status |
-|----------|---------|--------|
-| P0 | Desktop wrapper | 🔲 Not Started |
-| P0 | Local file system integration | 🔲 Not Started |
-| P1 | Bundled local translation model | 🔲 Not Started |
-| P2 | System tray integration | 🔲 Not Started |
+We maintain separate branches for platform-specific packaging/deployment:
 
-### Phase 3: Mobile Application
-**Target**: Flutter or React Native app
+- **`web`**: GitHub Pages hosted version (build/deploy + hosted constraints)
+- **`app`**: future packaged “app” version (**planned: API-only**, no Ollama)
 
-| Priority | Feature | Status |
-|----------|---------|--------|
-| P0 | Mobile UI adaptation | 🔲 Not Started |
-| P0 | Touch-optimized interactions | 🔲 Not Started |
-| P1 | Offline-first architecture | 🔲 Not Started |
+**Desktop wrapper**: explicitly de-scoped (web is effectively the desktop experience).
 
 ---
 
@@ -737,6 +728,7 @@ For each unique word in text:
 | 2024-12-16 | Agent | Added Settings page plan: highlight colors, LLM provider, dictionary management |
 | 2024-12-16 | Agent | Updated dictionary sizes to reflect actual data (218K ru-en, etc.) |
 | 2024-12-16 | Agent | Updated Phase 1 status - most features now complete |
+| 2025-12-19 | Maintainers | Defined platform strategy: `main` core, `web` GitHub Pages, `app` API-only; removed desktop milestone |
 | 2024-12-12 | Agent | Added development decisions: mock service, minimal design, tests, git workflow (A8-A11) |
 | 2024-12-12 | Agent | Added detailed step-by-step Implementation Guide for each milestone |
 | 2024-12-12 | Agent | Added processing mode toggle (Full/Dynamic) to F1: File Upload |

@@ -10,10 +10,10 @@ WordShifter is a language learning reading aid that lets you read authentic text
 
 - 📄 **Multiple Formats**: Upload PDF, EPUB, TXT, or paste text directly
 - 🌍 **Auto-Detection**: Automatically detects source language
-- ⚡ **Instant Translations**: Pre-processed text means zero loading time
+- ⚡ **Instant Word Translations**: Dictionary-first word lookup for a smooth reading flow
 - 💬 **Click-to-Translate**: Single word clicks or phrase selections
 - 📚 **Vocabulary Lists**: Save words organized by text, language, or total
-- 💾 **Offline Ready**: Works offline after initial processing
+- 💾 **Offline-First**: Word lookup works offline once dictionaries are available; phrase/LLM translation depends on your provider
 - 🔒 **Privacy First**: All data stored locally, no account required
 
 ## 🎯 Supported Languages
@@ -40,8 +40,8 @@ WordShifter is a language learning reading aid that lets you read authentic text
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/wordshifter.git
-cd wordshifter
+git clone https://github.com/yejin-eva/WordShifter.git
+cd WordShifter
 
 # Install dependencies
 npm install
@@ -52,7 +52,19 @@ npm run dev
 
 Visit `http://localhost:5173` in your browser.
 
-### Optional: Local AI Setup
+### Branches / “Versions” of WordShifter
+
+This repo is organized so core functionality lives in `main`, and platform-specific packaging/deployment lives in separate branches:
+
+- **`main`**: the core app (dictionary-first + optional LLM via API keys / local Ollama)
+- **`web`**: the GitHub Pages hosted build/deploy variant
+- **`app`**: future packaged “app” variant (planned to be **API-only**, no Ollama)
+
+### Optional: LLM Translation (API keys)
+
+WordShifter supports **OpenAI** and **Groq** as LLM providers. Add your key in **Settings → Translation** and use **Test API** to validate it.
+
+### Optional: Local AI Setup (Ollama)
 
 For free, offline translations, install [Ollama](https://ollama.ai):
 
@@ -85,7 +97,7 @@ ollama list
 ## 🏗️ Project Structure
 
 ```
-wordshift/
+WordShifter/
 ├── docs/                    # 📚 Documentation
 │   ├── PLANNING.md         # Project roadmap & features
 │   ├── ARCHITECTURE.md     # Technical design
@@ -130,23 +142,19 @@ This project is designed for seamless AI agent collaboration. Before making chan
 | **Styling** | Tailwind CSS |
 | **State** | Zustand |
 | **Storage** | IndexedDB (Dexie) |
-| **Translation** | Ollama (local) / OpenAI (cloud) |
+| **Translation** | Dictionary-first + LLM fallback (Ollama local / OpenAI + Groq API) |
 
 ---
 
 ## 📋 Development Status
 
-### Current Phase: MVP Development
+Core MVP features are implemented on `main`. See `docs/PLANNING.md` for what’s next (platform branches + polish).
 
-| Feature | Status |
-|---------|--------|
-| File Upload | 🔲 Not Started |
-| Language Selection | 🔲 Not Started |
-| Text Processing | 🔲 Not Started |
-| Interactive Reader | 🔲 Not Started |
-| Vocabulary Lists | 🔲 Not Started |
+---
 
-See `docs/PLANNING.md` for the complete roadmap.
+## 🌐 Hosted Web Version (GitHub Pages)
+
+The hosted build lives on the **`web`** branch. See `docs/DEVELOPMENT.md` for how to run/test it locally and how provider setup differs in hosted HTTPS environments.
 
 ---
 

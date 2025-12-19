@@ -328,17 +328,20 @@ The development server automatically watches for file changes. When you:
 - Edit `.css` files → Style injection (instant)
 - Edit `tailwind.config.js` → Requires manual restart
 
-### Branch Strategy (for Human Developers)
+### Branch Strategy
 
 ```
-main           ─── Stable, production-ready code
+main  ─── Core product (features + services + UI)
   │
-  └── develop  ─── Integration branch for features
-        │
-        ├── feature/file-upload    ─── Feature branches
-        ├── feature/translation
-        └── fix/bubble-position    ─── Bug fix branches
+  ├── web  ─── GitHub Pages hosted variant (deployment/base-path specifics)
+  │
+  └── app  ─── Future packaged “app” variant (planned: API-only, no Ollama)
 ```
+
+**Guidance**
+- Make core changes in **`main`** first.
+- Port/rebase into **`web`** only when needed for hosted behavior.
+- The upcoming **`app`** work should lean on API providers (OpenAI/Groq) to avoid local-server setup.
 
 ---
 
@@ -614,6 +617,10 @@ curl http://localhost:11434/api/tags
 # 4. Pull a model if none available
 ollama pull llama3.2
 ```
+
+#### Issue: API key works locally but fails on hosted deployments
+
+If you’re testing a hosted HTTPS build and see network errors, confirm you’re not running into browser restrictions (CORS / mixed content). The `web` branch documents hosted specifics; `main` is focused on core behavior.
 
 ### Performance Issues
 
