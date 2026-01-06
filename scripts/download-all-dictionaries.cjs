@@ -89,7 +89,19 @@ function downloadFile(url, destPath) {
 async function processDictionary(sourceLang, targetLang, cacheFile, outputPath, maxEntries) {
   console.log(`\n  Processing ${sourceLang} → ${targetLang}...`);
   
-  const entries = new Map();
+  // Merge strategy: start from existing dictionary (if present) so we NEVER shrink.
+  // This is important because different extraction passes can yield fewer translations.
+  let existing = {};
+  try {
+    if (fs.existsSync(outputPath)) {
+      existing = JSON.parse(fs.readFileSync(outputPath, 'utf8')) || {};
+    }
+  } catch (e) {
+    existing = {};
+  }
+
+  const entries = new Map(Object.entries(existing));
+  const targetSize = Math.max(maxEntries, entries.size);
   const fileStream = fs.createReadStream(cacheFile, { encoding: 'utf8' });
   const rl = readline.createInterface({
     input: fileStream,
@@ -100,7 +112,7 @@ async function processDictionary(sourceLang, targetLang, cacheFile, outputPath, 
   
   for await (const line of rl) {
     if (!line.trim()) continue;
-    if (entries.size >= maxEntries) break;
+    if (entries.size >= targetSize) break;
     
     try {
       const entry = JSON.parse(line);
@@ -191,7 +203,8 @@ async function processDictionary(sourceLang, targetLang, cacheFile, outputPath, 
   rl.close();
   fileStream.close();
   
-  console.log(`\r  Found ${entries.size} translations                    `);
+  const added = entries.size - Object.keys(existing).length;
+  console.log(`\r  Total: ${entries.size} translations (+${added})                    `);
   
   // Save as compact object
   const compactDict = Object.fromEntries(entries);
